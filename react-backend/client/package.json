@@ -5,6 +5,7 @@
   "proxy:": "http://localhost:3001/api",
   "dependencies": {
     "axios": "^0.18.0",
+    "immutability-helper": "^2.8.1",
     "react": "^16.5.2",
     "react-data-grid": "^4.0.8",
     "react-dom": "^16.5.2",
