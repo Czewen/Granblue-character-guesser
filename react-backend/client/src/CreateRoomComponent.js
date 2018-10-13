@@ -23,6 +23,7 @@ class CreateRoomComponent extends React.Component{
   createRoom(){
     console.log(this.state.maxCapacity);
     let self = this;
+    console.log('axios.post');
     axios.post(API_base + '/api/rooms/create', {
       capacity: this.state.maxCapacity,
       owner: this.state.username,

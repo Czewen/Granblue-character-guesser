@@ -36,12 +36,12 @@ class JoinRoomComponent extends React.Component {
 		console.log("roomId: ", this.state.roomIdInput);
 		var params = "?username=" + this.state.username + "&room_id=" + this.state.roomIdInput;
 		console.log("params: ", params);
-		axios.post(API_base + '/api/rooms/join' + params,{})
+		axios.put(API_base + '/api/rooms/join' + params,{})
 		.then(function(response){
 			console.log("join room post success");
 			console.log(response);
 			var data = response.data;
-			if(response.status === 201){
+			if(response.status === 200){
 				var path = '/room/' + self.state.roomIdInput;
         self.props.history.push({
           pathname: path,

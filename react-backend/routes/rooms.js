@@ -11,6 +11,7 @@ const EventEmitter = require('events');
 class MyEmitter extends EventEmitter {};
 
 const myEmitter = new MyEmitter();
+myEmitter.on('event', handleEvent);
 
 //init rooms for now
 db.any('SELECT * FROM rooms')
@@ -36,22 +37,23 @@ db.any('SELECT * FROM rooms')
 });
 
 //testing purposes
-myEmitter.on("event", function(updateType, roomInfo){
-	console.log("Called event handler");
-	var clients = roomInfo.clients;
-	if(updateType == 'scores'){
-		console.log("sending data from event handler");
-		console.log("roomInfo: ", roomInfo);
-		var clientNames = Object.keys(clients);
-		for(let name of clientNames){
-			var res = clients[name];
-			var content = 'data: ' + JSON.stringify(roomInfo.playerScores);
-			res.write(content);
-			res.write('\n\n');
-			console.log("sent: ", content);
-		}
-	}
-})
+// myEmitter.on("event", function(updateType, roomInfo){
+// 	console.log("Called event handler");
+// 	var clients = roomInfo.clients;
+// 	if(updateType == 'scores'){
+// 		console.log("sending data from event handler");
+// 		console.log("roomInfo: ", roomInfo);
+// 		var clientNames = Object.keys(clients);
+// 		for(let name of clientNames){
+// 			var res = clients[name];
+// 			var dataObj = {'eventType': 'scores', 'playerScores': roomInfo.playerScores};
+// 			var content = 'data: ' + JSON.stringify(dataObj);
+// 			res.write(content);
+// 			res.write('\n\n');
+// 			console.log("sent: ", content);
+// 		}
+// 	}
+// })
 
 function makeid() {
   var text = "";
@@ -68,6 +70,31 @@ function Room(id, owner){
 	this.owner = owner;
 	this.playerScores = {};
 	this.clients = {};
+}
+
+function handleEvent(updateType, roomInfo){
+	var clients = roomInfo.clients;
+	var clientNames = Object.keys(clients);
+	console.log('handling event: ', updateType);
+	var dataObj;
+	if(updateType === 'scores'){
+		console.log("Sending new scores for room: ", roomInfo.id);
+		dataObj = {'eventType': 'scores', 'playerScores': roomInfo.playerScores};
+	}
+	else if(updateType === 'disconnect'){
+		dataObj = {'eventType': 'disconnect'};
+	}
+
+	for(let name of clientNames){
+		console.log("Sending event to: ", name);
+		var clientRes = clients[name];
+		var content = 'data: ' + JSON.stringify(dataObj);
+		clientRes.write(content + "\n\n");
+	}
+
+	if(updateType === 'disconnect'){
+		delete rooms[roomInfo.id];
+	}
 }
 
 router.get('/', function(req, res, next) {
@@ -104,30 +131,17 @@ router.post('/create', function(req, res, next){
 		var roomIds = Object.keys(rooms);
 		console.log(roomIds);
 		res.status(201).json({'success': true, 'room_id': newRoomId});
-
-		myEmitter.on('event', function(updateType, roomInfo){
-			var clients = roomInfo.clients;
-			if(updateType == 'scores'){
-				var clientNames = Object.keys(clients);
-				for(let name of clientNames){
-					console.log("Event handler from create");
-					var clientRes = clients[name];
-					var content = 'data: ' + JSON.stringify(roomInfo.scores);
-					clientRes.write(content + "\n\n");
-				}
-			}
-		})
 	})
 	.catch(function(error){
 		console.log("INSERT FAIL:", error);
-		res.status(201).json({'success': false});
+		res.status(500).end();
 	})
 });
 
-router.post('/join', function(req, res, next){
+router.put('/join', function(req, res, next){
 	if(req.body == undefined || req.body.length == 0){
 		console.log("Bad request 1");
-		return res.status(400).send('Bad Request');
+		return res.status(401).send('Bad Request');
 	}
 
 	if(req.query.room_id == undefined || req.query.username == undefined){
@@ -135,7 +149,7 @@ router.post('/join', function(req, res, next){
 		console.log("room_id undefined?", req.body.room_id == undefined);
 		console.log("username undefined?", req.body.username == undefined);
 		console.log("Bad request 2");
-		return res.status(400).send('Bad Request');
+		return res.status(401).send('Bad Request');
 	}
 
 	var room_id = req.query.room_id;
@@ -145,18 +159,19 @@ router.post('/join', function(req, res, next){
        	console.log("count: ", count);
        	if(count == 0){
        		var message = "Room with ID: " + room_id + " not found.";
-       		return res.status(201).send({"error": true, "message": message});
+       		return res.status(200).send({"error": true, "message": message});
        	}
 
        	rooms[room_id].playerScores[req.query.username] = 0;
        	console.log(rooms[room_id]);
-       	return res.status(201).send('OK');
+       	myEmitter.emit('event', 'scores', rooms[room_id]);
+       	return res.status(200).send('OK');
 
     })
     .catch(error => {
     	console.log(error);
     	if(error.code == capacity_error_code){
-    		return res.status(201).send({"error": true, "message": "Room full."});
+    		return res.status(200).send({"error": true, "message": "Room full."});
     	}
     	return res.status(500).send();
     });
@@ -190,6 +205,12 @@ router.get('/room', function(req, res, next){
 })
 
 router.get('/eventstream', function(req, res, next){
+
+	if(req.query.room_id === undefined || req.query.username === undefined){
+		res.status(401).end()
+		return;
+	}
+
 	var roomInfo = rooms[req.query.room_id];
 	var username = req.query.username;
 	console.log("In eventstream endpoint");
@@ -207,6 +228,66 @@ router.get('/eventstream', function(req, res, next){
 	    var c = Object.keys(roomInfo.clients);
 	    console.log("clients: ", c);
 	}
+})
+
+router.post('/leave', function(req, res, next){
+
+	if(req.query.room_id === undefined || req.query.username === undefined){
+		res.status(401).end()
+		return;
+	}
+	
+	var room_id = req.query.room_id;
+	var roomInfo = rooms[room_id];
+	var username = req.query.username;
+
+	if(roomInfo != undefined){
+		if(username === roomInfo.owner){
+				//signal that room's closed to other players
+				var query =  'DELETE FROM rooms where id=' + room_id;
+				console.log("Delete query: ", query);
+				db.result('DELETE FROM rooms WHERE id=$1', [room_id], r => r.rowCount)
+					.then(count => {
+						if(count == 0){
+							var message = "Room with ID: " + room_id + " not found.";
+							return res.status(200).send({"error": true, "message": message});
+						}
+						myEmitter.emit('event', 'disconnect', roomInfo);
+						res.status(200).send('OK');
+					})
+					.catch(error => {
+						console.log(error);
+						return res.status(500).end();
+					})
+		}
+		else{
+			db.result('UPDATE rooms SET curr_capacity=curr_capacity-1 WHERE id=$1', [room_id], r => r.rowCount)
+		    .then(count => {
+		       // count = number of rows affected (updated or deleted) by the query
+		       	console.log("count: ", count);
+		       	if(count == 0){
+		       		var message = "Room with ID: " + room_id + " not found.";
+		       		return res.status(200).send({"error": true, "message": message});
+		       	}
+
+		       	console.log("deleting: ", username);
+		       	delete roomInfo.playerScores[username];
+		       	delete roomInfo.clients[username];
+		       	console.log("players left: ", roomInfo.playerScores);
+		       	var clientNames = Object.keys(roomInfo.clients);
+		       	console.log("clients left: ", clientNames );
+		       	myEmitter.emit('event', 'scores', roomInfo);
+		       	return res.status(200).send('OK');
+		    })
+		    .catch(error => {
+		    	console.log(error);
+		    	if(error.code == capacity_error_code){
+		    		return res.status(200).send({"error": true, "message": "Room full."});
+		    	}
+		    	return res.status(500).send();
+		    });
+		  }
+		}
 })
 
 router.get('/testupdatescore', function(req, res, next){

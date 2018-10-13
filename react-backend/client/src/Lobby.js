@@ -127,11 +127,13 @@ class Lobby extends Component {
           <JoinRoomComponent joinRoomId={this.state.joinRoomId}></JoinRoomComponent>
           <button onClick={this.hideJoinModal}>Cancel</button>
         </Modal>
-        <GameRoom roomId="HOWDY" username="Lecia"></GameRoom>
+        
       </div>)
   }
 
 }
+
+// /<GameRoom roomId="HOWDY" username="Lecia"></GameRoom>
 
 export default Lobby;
 
