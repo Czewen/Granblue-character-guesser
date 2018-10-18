@@ -13,6 +13,7 @@ CREATE Table Questions (
 	roomId varchar(8) REFERENCES rooms(id),
 	username varchar(20),
 	character_id bigint REFERENCES characters(character_id),
+	round int,
 	description text
 );
 
@@ -36,10 +37,11 @@ INSERT INTO characters VALUES(
 
 INSERT INTO Questions(roomid, username, character_id) VALUES(
 	'HOWDY',
-	'John',
+	'Jack',
 	1
-);
+) RETURNING id;
 
 SELECT name from characters where character_id=(
 	SELECT character_id from questions where id=3
 );
+
