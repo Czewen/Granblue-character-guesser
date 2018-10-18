@@ -68,6 +68,7 @@ class GameRoom extends React.Component {
 		console.log("Game room props: ", this.props);
 		console.log("Game room id: ", this.state.roomId);
 		console.log(this.location);
+		this.startGame = this.startGame.bind(this);
 		this.handleEvent = this.handleEvent.bind(this);
 		this.updateScores = this.updateScores.bind(this);
 		this.leaveRoom = this.leaveRoom.bind(this);
@@ -76,6 +77,17 @@ class GameRoom extends React.Component {
 
 		this.scoreEventSource = new EventSource(API_base + '/api/rooms/eventstream' + params);
 		this.scoreEventSource.onmessage = (e) => this.handleEvent(JSON.parse(e.data));
+	}
+
+	startGame(){
+		var params = "?room_id=" + this.state.roomInfo.id + "&username=" + this.state.username;
+		axios.post(API_base + '/api/rooms/startGame' + params, {})
+		.then(function(response){
+			console.log("Start game response: ", response );
+		})
+		.catch(function(error){
+
+		})
 	}
 
 	testUpdateScore(){
@@ -92,16 +104,32 @@ class GameRoom extends React.Component {
 
 	handleEvent(eventData){
 		console.log("handleEvent");
-		
-		if(eventData.eventType === 'scores'){
-			console.log('new scores: ', eventData.playerScores);
-			this.updateScores(eventData.playerScores);
+
+		switch(eventData.eventType){
+			case 'scores':
+				console.log('new scores: ', eventData.playerScores);
+				this.updateScores(eventData.playerScores);
+				break;
+			case 'disconnect':
+				console.log('host disconnected');
+				this.setState({disconnect: true});
+				break;
+			case 'startGame':
+				console.log('start game');
+				this.setState({startGame: true});
+				break;
+			default:
+				console.log("Received unknown event: ", eventData.eventType);
 		}
-		else if(eventData.eventType == 'disconnect'){
-			console.log('host disconnected');
-			this.setState({disconnect: true});
-		}
 		
+		// if(eventData.eventType === 'scores'){
+		// 	console.log('new scores: ', eventData.playerScores);
+		// 	this.updateScores(eventData.playerScores);
+		// }
+		// else if(eventData.eventType == 'disconnect'){
+		// 	console.log('host disconnected');
+		// 	this.setState({disconnect: true});
+		// }
 	}
 
 	updateScores(newScores){
@@ -148,6 +176,7 @@ class GameRoom extends React.Component {
 	}
 
 	render(){
+		const isRoomOwner = this.state.username ===this.state.roominfo.owner;
 		if(this.state.disconnect){
 			return (<Redirect to="/"/>)
 		}
@@ -156,8 +185,10 @@ class GameRoom extends React.Component {
 					<div>
 						<ScoreBoard gameStarted={this.state.gameStarted} 
 								playerScores={this.state.roomInfo.playerScores}/>
-						<button onClick={this.testUpdateScore}>Test update score</button>
-						<button onClick={this.leaveRoom}>Leave room</button>
+						{isRoomOwner && (
+							<button onClick={this.startGame}>Start</button>
+						)}
+							<button onClick={this.leaveRoom}>Leave room</button>
 					</div>
 			);
 		}		

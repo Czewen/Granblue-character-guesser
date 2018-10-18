@@ -7,6 +7,7 @@ import "react-table/react-table.css";
 import JoinRoomComponent from './JoinRoomComponent'
 import CreateRoom from './CreateRoomComponent'
 import GameRoom from './GameRoom'
+import DescribeCharacterInput from './UIComponents/DescribeCharacterInput'
 
 
 var API_base = (process.env.NODE_ENV === 'development') 
@@ -28,6 +29,7 @@ Modal.setAppElement('#root')
 
 class Lobby extends Component {
   state = {
+    testDescriptors: [],
     rooms: [],
     showCreateModal: false,
     showJoinModal: false
@@ -104,6 +106,7 @@ class Lobby extends Component {
 
     return (
       <div>
+        <DescribeCharacterInput descriptors={this.state.testDescriptors}/>
         <ReactTable 
         data={this.state.rooms} 
         columns={columns}
