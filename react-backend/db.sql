@@ -26,7 +26,8 @@ CREATE Table Characters(
 	restricted_words text
 );
 
-INSERT INTO characters VALUES(
+INSERT INTO characters VALUES
+(
 	1,
 	'Lecia',
 	'Human',
@@ -35,11 +36,18 @@ INSERT INTO characters VALUES(
 	'test'
 );
 
-INSERT INTO Questions(roomid, username, character_id) VALUES(
+INSERT INTO Questions(roomid, username, character_id) VALUES
+(
 	'HOWDY',
-	'Jack',
+	'Jessie',
 	1
-) RETURNING id;
+),
+(
+	'HOWDY',
+	'Johnny',
+	1
+)
+RETURNING id;
 
 SELECT name from characters where character_id=(
 	SELECT character_id from questions where id=3

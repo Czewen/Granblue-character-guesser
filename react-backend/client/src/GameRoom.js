@@ -61,8 +61,9 @@ class GameRoom extends React.Component {
 			roomInfo: {},
 			roomId: roomId,
 			username: username,
-			gameStarted: false,
+			gameState: "lobby",
 			disconnect: false,
+			currentRound: 0
 		}
 
 		console.log("Game room props: ", this.props);
@@ -75,8 +76,8 @@ class GameRoom extends React.Component {
 		this.testUpdateScore = this.testUpdateScore.bind(this);
 		var params = "?username=" + this.state.username + "&room_id=" + this.state.roomId;
 
-		this.scoreEventSource = new EventSource(API_base + '/api/rooms/eventstream' + params);
-		this.scoreEventSource.onmessage = (e) => this.handleEvent(JSON.parse(e.data));
+		this.eventSource = new EventSource(API_base + '/api/rooms/eventstream' + params);
+		this.eventSource.onmessage = (e) => this.handleEvent(JSON.parse(e.data));
 	}
 
 	startGame(){
@@ -114,9 +115,17 @@ class GameRoom extends React.Component {
 				console.log('host disconnected');
 				this.setState({disconnect: true});
 				break;
-			case 'startGame':
-				console.log('start game');
-				this.setState({startGame: true});
+			case 'startQuestionRound':
+				console.log('question round');
+				this.setState({gameState: "questions", currentRound: eventData.currentRound});
+				break;
+			case 'startAnswerRound':
+				console.log("answer round");
+				this.setState({gameState: "answers"});
+				break;
+			case 'endGame':
+				console.log("game ended");
+				this.returnToLobby();
 				break;
 			default:
 				console.log("Received unknown event: ", eventData.eventType);
@@ -146,12 +155,17 @@ class GameRoom extends React.Component {
 			console.log("leave response: ", response);
 			console.log("room owner: ", self.state.roomInfo.owner);
 			if(response.status == 200 && self.state.username != self.state.roomInfo.owner){
-				self.props.history.push("/");
+				this.returnToLobby();
 			}
 		})
 		.catch(function(error){
 				console.log("Error occured while trying to leave room: ", error);
 		})
+	}
+
+	returnToLobby = () => {
+		this.eventSource.close();
+		self.props.history.push("/");
 	}
 
 	componentDidMount(){

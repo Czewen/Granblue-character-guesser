@@ -51,10 +51,13 @@ function Room(id, owner){
 	this.owner = owner;
 	this.playerScores = {};
 	this.clients = {};
-	this.hasAnswered = [];
+	this.hasSubmitted = [];
 	this.currCapacity = 0;
 	this.currentRound = 0;
-	this.currentQuestion;
+	this.maxRounds = 1;
+	this.gameState = "lobby";
+	this.questionIds = [];
+	this.currentQuestion = {};
 }
 
 function handleEvent(updateType, roomInfo){
@@ -63,34 +66,80 @@ function handleEvent(updateType, roomInfo){
 	console.log('handling event: ', updateType);
 	var dataObj;
 
+	var sendToClientsCallback = function(dataObj){
+		for(let name of clientNames){
+			console.log("Sending event to: ", name);
+			var clientRes = clients[name];
+			var content = 'data: ' + JSON.stringify(dataObj);
+			clientRes.write(content + "\n\n");
+		}
+	}
+
 	switch(updateType){
 		case 'scores':
 			console.log("Sending new scores for room: ", roomInfo.id);
 			dataObj = {'eventType': 'scores', 'playerScores': roomInfo.playerScores};
 			break;
 		case 'disconnect':
-			dataObj = {'eventType': 'disconnect'};
+			dataObj = {'eventType': updateType};
 			break;
 		case 'startGame':
-			dataObj = {'eventType': 'startGame'};
+			dataObj = {'eventType': updateType};
+			roomInfo.gameState = "question";
 			break;
-		case 'startNextRound':
-			dataObj = {}
+		case 'startAnswerRound':
+			roomInfo.gameState = "answer";
+			dataObj = {'eventType': updateType};
+			selectNextQuestion(roomInfo, sendToClientsCallback);
+			return;
+		case 'startQuestionRound':
+			roomInfo.round++;
+			if(roomInfo.round <= roomInfo.maxRounds){
+				roomInfo.gameState = "question";
+				prepareQuestions(roomInfo, sendToClientsCallback);
+				return;
+			}
+		case 'endGame':
+			dataObj = {'eventType': updateType, playerScores: roomInfo.playerScores};
 			break;
+		case 'nextQuestion':
+			selectNextQuestion(roomInfo, sendToClientsCallback);
+			return;
 		default:
 			dataObj = {'eventType': 'unknown event'};
 	}
 
-	for(let name of clientNames){
-		console.log("Sending event to: ", name);
-		var clientRes = clients[name];
-		var content = 'data: ' + JSON.stringify(dataObj);
-		clientRes.write(content + "\n\n");
-	}
+	sendToClientsCallback(dataObj);
 
-	if(updateType === 'disconnect'){
+	if(updateType === 'disconnect' || updateType === 'endGame'){
 		delete rooms[roomInfo.id];
 	}
+}
+
+function prepareQuestions(roomInfo, callback){
+	var questions = [];
+	var users = Object.keys(roomInfo.playerScores);
+	for(user of users){
+		//should be randomized but for testing purposes, we'll just use 1
+		var character_id = 1;
+		questions.push({"roomid": roomInfo.id, "username": user,"character_id": character_id, "round": roomInfo.currentRound});
+	}
+	console.log(questions);
+	//var values = new Inserts('${roomId}, ${username}, ${character_id}, ${round}', questions);
+	var query = pgp.helpers.insert(questions, ['roomid', 'username', 'character_id', 'round'], 'questions') + " RETURNING id";
+	console.log(query);
+	db.result(query)
+		.then(result => {
+			console.log(result);
+			var dataObj = {'eventType': 'newQuestionRound', currentRound: roomInfo.round};
+			for( row of result.rows){
+				roomInfo.questions.push(row.id);
+			}
+			callback(dataObj);
+		})
+		.catch(error => {
+			console.log(error);
+		})
 }
 
 function createQuestion(roomId, round, username){
@@ -112,6 +161,46 @@ function createQuestion(roomId, round, username){
 				console.log(error);
 				res.status(500).end();
 		})
+}
+
+function selectNextQuestion(roomInfo, callback){
+	if(roomInfo.questionIds.length > 0)
+		var nextQuestionId = roomInfo.questionIds.shift();
+
+		var query = 'SELECT questions.id, questions.username, characters.* '
+			+ 'FROM questions, characters where questions.id=$1';
+		db.one(query, nextQuestionId)
+		.then(result => {
+			roomInfo.currentQuestion = {
+				"question": 
+				{
+					'id': result.id,
+					'username': result.username
+				},
+				'character':
+				{
+					'character_id': result.character_id,
+					'name': result.name,
+					'race': result.race,
+					'weapon': result.weapon,
+					'story_exclusive': result.story_exclusive,
+					'restricted_words': result.restricted_words
+				}
+			};
+
+		var dataObj = {eventType: 'nextQuestion', playerScores: roomInfo.playerScores};
+		callback(dataObj);
+	})
+	.catch(error => {
+			//skip over this question if there was an error
+		console.log(error);
+		if(roomInfo.questionIds.length === 0){
+			myEmitter.emit('event', 'startAnswerRound', roomInfo);
+		}
+		else{
+			myEmitter.emit('event', 'selectNextQuestion', roomInfo);
+		}
+	})
 }
 
 router.get('/', function(req, res, next) {
@@ -136,9 +225,10 @@ router.post('/create', function(req, res, next){
 	console.log(req.body);
 	var body = req.body;
 	var newRoomId = makeid();
-	var query = 'INSERT INTO ROOMS(id, curr_capacity, max_capacity, closed, difficulty, owner)' 
-				+ 'VALUES($1, 1, $2, FALSE, $3, $4)';	
-	db.any(query, [newRoomId, body.capacity, body.difficulty, body.owner])
+	var max_rounds = 2;
+	var query = 'INSERT INTO ROOMS(id, curr_capacity, max_capacity, closed, difficulty, owner, max_rounds)' 
+				+ 'VALUES($1, 1, $2, FALSE, $3, $4, $5)';	
+	db.any(query, [newRoomId, body.capacity, body.difficulty, body.owner,max_rounds])
 	.then(function(data){
 		console.log("INSERT SUCCESS: " ,data);
 		console.log("Creating room with id: ", newRoomId);
@@ -160,7 +250,7 @@ router.post('/create', function(req, res, next){
 router.put('/join', function(req, res, next){
 	if(req.body == undefined || req.body.length == 0){
 		console.log("Bad request 1");
-		return res.status(401).send('Bad Request');
+		return res.status(400).send('Bad Request');
 	}
 
 	if(req.query.room_id == undefined || req.query.username == undefined){
@@ -168,17 +258,27 @@ router.put('/join', function(req, res, next){
 		console.log("room_id undefined?", req.body.room_id == undefined);
 		console.log("username undefined?", req.body.username == undefined);
 		console.log("Bad request 2");
-		return res.status(401).send('Bad Request');
+		return res.status(400).send('Bad Request');
 	}
 
 	var room_id = req.query.room_id;
-	db.result('UPDATE rooms SET curr_capacity=curr_capacity+1 WHERE id=$1', [room_id], r => r.rowCount)
+	var roomInfo = rooms[room_id];
+
+	if(roomInfo === undefined){
+		res.status(200).send({'error': true, 'exists': false});
+		return;
+	}
+	else if(roomInfo.gameState != 'lobby'){
+		res.status(200).send({'error': true, 'gameStarted': true});
+	}
+
+	db.result('UPDATE rooms SET curr_capacity=curr_capacity+1 WHERE id=$1 AND ', [room_id], r => r.rowCount)
     .then(count => {
        // count = number of rows affected (updated or deleted) by the query
        	console.log("count: ", count);
        	if(count == 0){
-       		var message = "Room with ID: " + room_id + " not found.";
-       		return res.status(200).send({"error": true, "message": message});
+       		res.status(200).send({'error': true, 'exists': false});
+					return;
        	}
 
        	rooms[room_id].playerScores[req.query.username] = 0;
@@ -220,15 +320,37 @@ router.post('/startGame', function(req, res, next){
 	}
 	else{
 		var roomId = req.query.room_id;
-		myEmitter.emit('event', 'startGame', rooms[roomId]);
+		myEmitter.emit('event', 'startQuestionRound', rooms[roomId]);
 		res.status(200).send('OK');
 	}
+})
+
+router.get('/getGameState', function(req, res, next){
+	if(req.query.room_id === undefined){
+		res.status(400).end();
+	}
+
+	var roomInfo = rooms[req.query.room_id];
+	if(roomInfo === undefined){
+		var msg = 'Room with ID: ' + req.query.room_id + ' does not exist.';
+		res.status(200).json({error: true, message: msg});
+	}
+
+	if(roomInfo.gameState === 'lobby' || roomInfo.gameState === 'question'
+			|| roomInfo.gameState === 'answer')
+	{
+		res.status(200).json({gameState: roomInfo.gameState});
+	}
+	else{
+		console.log("Unknown game state: ", roomInfo.gameState);
+	}
+
 })
 
 router.get('/eventstream', function(req, res, next){
 
 	if(req.query.room_id === undefined || req.query.username === undefined){
-		res.status(401).end()
+		res.status(400).end()
 		return;
 	}
 
@@ -254,7 +376,7 @@ router.get('/eventstream', function(req, res, next){
 router.post('/leave', function(req, res, next){
 
 	if(req.query.room_id === undefined || req.query.username === undefined){
-		res.status(401).end()
+		res.status(400).end()
 		return;
 	}
 	
@@ -329,43 +451,24 @@ router.post('/leave', function(req, res, next){
 		}
 })
 
-// router.get('/createQuestion', function(req, res, next){
-// 	if(req.query.room_id === undefined || req.query.username === undefined){
-// 		res.status(401).end()
-// 		return;
-// 	}
-// 	var roomId = req.query.room_id;
-// 	var roomInfo = rooms[roomId];
-// 	if(roomInfo === undefined){
-// 		var errMsg = 'Room with ID: ' + roomId + ' doesnt exist';
-// 		res.status(401).send(errMsg);
-// 	}		
-// 	//for testing purposes, character_id = 1 (will be randomized in the future)
-// 	var query = 'INSERT INTO QUESTIONS(roomId, username, character_id)'
-// 				+ 'VALUES($1, $2, $3) RETURNING id';
-// 	var roomId = req.query.room_id;
-// 	var username = req.query.username;
-	
-// 	db.result(query, [roomId, username, 1])
-// 		.then(result => {
-// 				if(result.count === 0){
-// 					res.status(200).json({'error': true, 'message': 'Error occurred when trying to create question'});
-// 				}
-// 				else{
-// 					console.log(result);
-// 					res.status(200).send({"question_id": result.rows.id, "round": round});
-// 				}
-// 		})
-// 		.catch(function(error){
-// 				console.log(error);
-// 				res.status(500).end();
-// 		})
-// })
+router.get('/roomQuestion', function(req, res, next){
+	if(req.query.room_id === undefined){
+		res.status(400).end();
+	}
 
-router.get('/getQuestion', function(req, res, next){
+	var roomInfo = req.query.room_id;
+	if(roomInfo === undefined){
+		var errMsg = 'Could not find question with ID: ' + questionId
+			res.status(200).json({'error': true, 'message': errMsg});
+	}
+	
+	res.status(200).json(roomInfo.currentQuestion);
+})
+
+router.get('/getMyQuestion', function(req, res, next){
 	if(req.query.username === undefined || req.query.room_id === undefined
 			|| req.query.round === undefined){
-		res.status(401).end();
+		res.status(400).end();
 	}
 
 	var round = req.query.round;
@@ -386,52 +489,64 @@ router.get('/getQuestion', function(req, res, next){
 		res.status(200).json({'error': true, 'expired': true })
 	}
 
-	db.task(t => {
-		return t.one('SELECT id, character_id from questions where roomId=${room_id} AND username=${username} AND round=${round}', req.query)
-			.then(question => {
-				if(question){
-					return t.one('SELECT * from characters where character_id=$1', question.character_id)
-						.then(character => {
-							return {"questionId": question.id, "character": character};
-						})
+	db.one('SELECT questions.id, characters.* from questions, characters where questions.roomId=${room_id} AND username=${username} AND round=${round}', req.query)
+		.then(result => {
+			res.status(200).json({
+				"question": 
+				{
+					'id': result.id,
+					'username': result.username
+				},
+				'character':
+				{
+					'character_id': result.character_id,
+					'name': result.name,
+					'race': result.race,
+					'weapon': result.weapon,
+					'story_exclusive': result.story_exclusive,
+					'restricted_words': result.restricted_words
 				}
-				return {};
 			})
-			.catch(error => {
-				console.log("Second query: ", error);
-			})
-	})
-	.then(result => {
-		console.log(result);
-		if(!result || Object.keys(result).length === 0){
-			res.status(200).json({'error': true, 'questionExists': false});
-		}
+		})
+		.catch(error => {
+			console.log(error);
+		})
 
-		res.status(200).json(result);
-	})
-	.catch(error => {
-		console.log("First query: ", error);
-		res.status(500).end();
-	})
+	
 })
 
 router.post('/submitDescription', function(req, res, next){
-	if(req.body.questionId === undefined){
-		res.status(401).end()
+	if(req.body.questionId === undefined || req.body.room_id === undefined
+			|| req.body.answer === undefined){
+		res.status(400).end()
 		return;
 	}
 
-	var questionId = req.query.questionId;
-	var username = req.query.username;
+	var questionId = req.body.questionId;
+	var username = req.body.username;
+	var roomInfo = rooms[req.body.room_id];
 
-	db.result('UPDATE questions SET answer=$1 WHERE id=$2', [room_id], r => r.rowCount)
+	if(roomInfo === undefined){
+		res.status(200).json({'error': true, 'questionExists': false});
+	}
+
+	if(roomInfo.hasSubmitted[username] != undefined){
+		res.status(200).json({'error': true, 'repost': true});
+	}
+
+	db.result('UPDATE questions SET answer=${answer} WHERE id=${questionId}', req.body, r => r.rowCount)
 	.then(count => {
 		if(count === 0 ){
-			var errMsg = 'Could not find question with ID: ' + questionId
-			res.status(200).json({'error': true, 'message': errMsg});
+			res.status(200).json({'error': true, 'questionExists': false});
 		}
 		else{
 			res.status(200).json('OK');
+			roomInfo.hasSubmitted[username] = true;
+
+			if(Object.keys(roomInfo.hasSubmitted).length === roomInfo.currentCapacity){
+				roomInfo.hasSubmitted= {};
+				myEmitter.emit('event', 'startAnswerRound', roomInfo);
+			}
 		}
 	})
 	.catch(function(error){
@@ -444,7 +559,7 @@ router.post('/submitAnswer', function(req, res, next){
 	if(req.body.question_id === undefined || req.body.room_id === undefined
 			|| req.body.username === undefined){
 		console.log(req.body);
-		res.status(401).end();
+		res.status(400).end();
 		return;
 	}
 
@@ -453,66 +568,37 @@ router.post('/submitAnswer', function(req, res, next){
 	var answer = req.body.answer;
 	var username = req.body.username;
 
-	if(roomInfo.hasAnswered[username] != undefined){
-		var msg = 'You have answered this question before already.';
-		res.status(200).json({'sucess': false, "message": msg});
+	if(roomInfo.gameState != 'answer'){
+		res.status(200).json({'error': true, 'expired': true});
 	}
-	// else if(questionId != roomInfo.currentQuestion){
+
+	if(roomInfo.hasSubmitted[username] != undefined){
+		res.status(200).json({'error': true, 'repost': true});
+	}
+	// else if(questionId != roomInfo.currentQuestion.id){
 	// 	var msg = 'Question with ID: ' + questionId + ' has already expired.';
 	// 	res.status(200).json({'sucess': false, "message": msg});
 	// }
-
-	var questionQuery = 'SELECT username, character_id from Questions where id=$1';
-	db.task(t => {
-		return t.one(questionQuery, questionId)
-			.then(question => {
-				if(question){
-					console.log("Executed first query...");
-					console.log(question);
-					return t.any('SELECT * FROM characters where character_id=${character_id}', question)
-						.then(character => {
-							return {'questionOwner': question.username, 'characterName': character.name};
-						})
-						.catch(error => {
-							console.log("Second query: " ,error);
-						})
-				}
-				console.log("Returning empty");
-				return {};
-			})
-			.catch(error => {
-				console.log("First query: ", error);
-			})
-	})
-	.then(result => {
-		// var question = result.question;
-		// var character = result.character;
-		if (Object.keys(result).length === 0) {
-			res.status(200).json({'error': true, 'questionExists': false});
-		}
-
-		roomInfo.hasAnswered[username] = true;
-		if(answer === result.characterName){
+	var currentQuestion = roomInfo.currentQuestion;
+	roomInfo.hasSubmitted[username] = true;
+		if(currentQuestion.character.name === result.characterName){
 			roomInfo.playerScores[username]+=1000;
 			roomInfo.playerScores[result.questionOwner]+=1500;
 		}
 
-		if(Object.keys(roomInfo.hasAnswered).length === roomInfo.currentCapacity){
-			roomInfo.hasAnswered = {};
-			myEmitter.emit('event', 'startQuestionRound', roomInfo);
+		if(Object.keys(roomInfo.hasSubmitted).length === roomInfo.currentCapacity){
+			roomInfo.hasSubmitted = {};
+			myEmitter.emit('event', 'nextQuestion', roomInfo);
 
 		}
-
-		res.status(200).json('OK');
-		console.log(result);
-	})
-	.catch(error => {
-		console.log(error);
-	});
 })
 
-router.post('/testBody', function(req, res, next){
-	console.log(req.body);
+router.post('/testPrepareQuestions', function(req, res, next){
+	var roomId = req.body.room_id;
+	var dummyFunc = () => {
+		return 1;
+	}
+	prepareQuestions(rooms[roomId], dummyFunc);
 	res.status(200).send('OK');
 })
 
