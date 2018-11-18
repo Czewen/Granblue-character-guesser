@@ -1,0 +1,18 @@
+
+.modal-backdrop
+{
+  opacity:0.9 !important;
+}
+
+.fullOpacity{
+  opacity: 1.0 !important;
+}
+
+.zeroOpacity{
+  opacity: 0.0 !important;
+}
+
+.close_override {
+  color: #b4b6ba;
+  opacity: 0.5;
+}

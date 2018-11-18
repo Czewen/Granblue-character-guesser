@@ -1,0 +1,79 @@
+.bg { 
+    /* The image used */
+    background-image: url("./bg/home_background.jpg");
+
+    /* Full height */
+    height: 100%;
+
+
+    /* Full width */
+    width: 100%; 
+
+    /* Center and scale the image nicely */
+   /* background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;*/
+
+    position: absolute; 
+    top: 0; 
+    left: 0;
+}
+
+.home_card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 300px;
+  height: 300px;
+  margin-top: -150px;
+  margin-left: -150px;
+  background-color: #007bff;
+}
+
+.flex_center {
+  justify-content: flex-center
+}
+
+#homeCardRoot {
+  background-color: rgba(248, 249, 250, 0.62);
+  padding: 2px 3px 2px 3px;
+}
+
+
+
+#homeCardListItem {
+  color: black;
+  margin-bottom: 10px;
+  color: #fff;
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+#homeCardListItem:hover {
+  color: #fff;
+  background-color: #0069d9;
+  border-color: #0062cc;
+}
+
+#homeCardListItem:focus, #homeCardListItem.focus {
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.5);
+}
+
+#homeCardListItem.disabled, #homeCardListItem:disabled {
+  color: #fff;
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+#homeCardListItem:not(:disabled):not(.disabled):active, #homeCardListItem:not(:disabled):not(.disabled).active,
+.show > #homeCardListItem.dropdown-toggle {
+  color: #fff;
+  background-color: #0062cc;
+  border-color: #005cbf;
+}
+
+#homeCardListItem:not(:disabled):not(.disabled):active:focus, #homeCardListItem:not(:disabled):not(.disabled).active:focus,
+.show > #homeCardListItem.dropdown-toggle:focus {
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.5);
+}
+

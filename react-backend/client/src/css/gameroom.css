@@ -1,0 +1,21 @@
+.bg_gameroom { 
+    /* The image used */
+    background-image: url("./bg/home_background.jpg");
+
+    /* Full height */
+    height: 100%;
+
+    opacity: 0.5;
+
+    /* Full width */
+    width: 100%; 
+
+    /* Center and scale the image nicely */
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+
+    position: fixed; 
+    top: 0; 
+    left: 0;
+}

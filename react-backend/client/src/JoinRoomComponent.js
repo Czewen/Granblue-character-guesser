@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import './App.css';
 import axios from 'axios';
 import { withRouter } from 'react-router';
+import $ from 'jquery';
 
 var API_base = (process.env.NODE_ENV === 'development') 
     ? process.env.REACT_APP_DEV_SERVER
@@ -10,9 +11,20 @@ var API_base = (process.env.NODE_ENV === 'development')
 class JoinRoomComponent extends React.Component {
 	constructor(props) {
 		super(props);
+
+    var roomId;
+    if(this.props.joinRoomId){
+      roomId = this.props.joinRoomId;
+    }
+    else{
+      roomId = "";
+    }
+
 		this.state = {
 			username: '',
-			roomIdInput: this.props.joinRoomId
+			roomIdInput: roomId,
+      error: false,
+      errorMessage: "",
 		};
 
 		this.onChangeRoomId = this.onChangeRoomId.bind(this);
@@ -21,7 +33,6 @@ class JoinRoomComponent extends React.Component {
 	}
 
 	onChangeRoomId(event){
-		//console.log("set room id: ", event.target.value);
 		this.setState({roomIdInput: event.target.value});
 	}
 
@@ -30,41 +41,153 @@ class JoinRoomComponent extends React.Component {
 		this.setState({username: event.target.value});
 	}
 
+  componentDidUpdate(prevProps){
+    if(prevProps.joinRoomId != this.props.joinRoomId){
+      this.setState({
+        roomIdInput: this.props.joinRoomId
+      });
+    }
+  }
+
+  componentDidMount(){
+    var self = this;
+    $('#joinRoomModal').on('hidden.bs.modal', function(){
+      self.setState({
+        username: '',
+        roomIdInput: '',
+        error: false,
+        errorMessage: ''
+      });
+    });
+  }
+
 	joinRoom(){
 		var self = this;
-		console.log("username: ", this.state.username);
-		console.log("roomId: ", this.state.roomIdInput);
+
+    if(!this.state.username || this.state.username === ""){
+      this.setState({
+        error: true,
+        errorMessage: "Please enter a username."
+      });
+      return;
+    }
+    else if(this.state.username.length > 12){
+      this.setState({
+        error: true,
+        errorMessage: "Please enter a username that is between 0 and 12 characters long."
+      })
+      return;
+    }    
+
+    if(!this.state.roomIdInput){
+      this.setState({
+        error: true,
+        errorMessage: "Please enter a room id."
+      });
+      return;
+    }
+
 		var params = "?username=" + this.state.username + "&room_id=" + this.state.roomIdInput;
-		console.log("params: ", params);
-		axios.put(API_base + '/api/rooms/join' + params,{})
+		
+    axios.put(API_base + '/api/rooms/join' + params,{})
 		.then(function(response){
-			console.log("join room post success");
-			console.log(response);
 			var data = response.data;
-			if(response.status === 200){
+			if(response.status === 200 && !response.data.error){
 				var path = '/room/' + self.state.roomIdInput;
+        $('#joinRoomModal').modal('toggle');
         self.props.history.push({
           pathname: path,
           state: {username: self.state.username}
         })
 			}
+      else{
+        var errMsg = "";
+        console.log("JoinRoomComponent error: ", response.data);
+        if(response.data.roomNotExist) {
+          errMsg = "Room with id: " + self.state.roomIdInput + " does not exist.";
+        }
+        else if(response.data.gameStarted) {
+          errMsg = "Game has already started.";
+        }
+        else if(response.data.roomFull){
+          errMsg = "Room is full.";
+        }
+        else if(response.data.duplicateUsername){
+          errMsg = "Username already taken. Please choose a different username.";
+        }
+
+        self.setState({
+          error: true,
+          errorMessage: errMsg
+        });
+        return;
+      }
 		})
 		.catch(function(error){
 			console.log(error);
+      self.setState({
+        error: true,
+        errorMessage: "An error occured. Please try again."
+      })
 		})
 	}
 
 	render(){
-		return(
-			<div>
-			  <label htmlFor="username">Join as: </label>
-			  <input type="text" id="username" required
-	                value={this.state.username} onChange={this.onChangeUsername}></input>	
-	          <label htmlFor="roomid">Room ID:</label>
-	          <input type="text" id="roomid" name="roomid" required
-	                value={this.state.roomIdInput || ''} onChange={this.onChangeRoomId}></input>
-	          <button onClick={this.joinRoom}>Join</button>
-	        </div>);
+
+    const marginBot = {
+      'marginBottom': '10px'
+    };
+
+    const marginTop = {
+      'marginTop': '10px'
+    };
+
+    const marginLeft = {
+      'marginLeft': '5px'
+    };
+
+		return (
+      <div className="modal fade" role="dialog" id="joinRoomModal">
+        <div className="modal-dialog" role="dialog">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h5 className="modal-title">Join a room</h5>
+              <a type="button" className="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </a>
+            </div>
+            <div className="modal-body">
+              <form>
+                <div className="input-group input-group-sm" style={marginBot}>
+                  <div className="input-group-prepend">
+                    <span className="input-group-text" id="basic-addon1">Username:</span>
+                  </div>
+                  <input type="text" className="form-control" placeholder="Username" id="joinRoomUsernameInput"
+                    aria-label="Username" value={this.state.username} 
+                    onChange={this.onChangeUsername}/>
+                </div>
+                <div className="input-group input-group-sm">
+                  <div className="input-group-prepend">
+                    <span className="input-group-text" id="basic-addon1">Room ID:</span>
+                  </div>
+                  <input type="text" className="form-control" placeholder="Room id" id="joinRoomRoomIdInput"
+                    aria-label="Username" value={this.state.roomIdInput} 
+                    onChange={this.onChangeRoomId}/>
+                </div>
+                { this.state.error && (
+                  <div className="alert alert-danger" role="alert" style={marginTop}>{this.state.errorMessage}</div>
+                )}
+              </form>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-primary" 
+                onClick={this.joinRoom}> Join </button>
+              <button type="button" className="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
 	}
 }
 

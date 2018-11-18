@@ -1,16 +1,6 @@
 import React from 'react';
-import Autosuggest from 'react-autosuggest'; 
-
-const gbf_characters = [
-	{
-		"name": "Lecia",
-		"id": 3040101000
-	},
-	{
-		"name": "Rosetta",
-		"id": 3040068000
-	}
-]
+import Autosuggest from 'react-autosuggest';
+import '../css/CharacterSelectInput.css'; 
 
 // https://developer.mozilla.org/en/docs/Web/JavaScript/Guide/Regular_Expressions#Using_Special_Characters
 function escapeRegexCharacters(str) {
@@ -18,14 +8,12 @@ function escapeRegexCharacters(str) {
 }
  
 export default class CharacterSelectInput extends React.Component {
-  constructor() {
-    super();
+  constructor(props) {
+    super(props);
 
     this.state = {
       value: '',
       suggestions: [],
-      characters: gbf_characters,
-
     };
 
     this.getSuggestions = this.getSuggestions.bind(this);
@@ -35,6 +23,7 @@ export default class CharacterSelectInput extends React.Component {
     this.setState({
       value: newValue
     });
+    //this.props.onCharacterSelect(newValue);
   };
   
   onSuggestionsFetchRequested = ({ value }) => {
@@ -58,10 +47,13 @@ export default class CharacterSelectInput extends React.Component {
 
 	  const regex = new RegExp('^' + escapedValue, 'i');
 
-	  return this.state.characters.filter(character => regex.test(character.name));
+	  return this.props.characters.filter(character => regex.test(character.name));
 	}
 
-	getSuggestionValue(suggestion) {
+
+	getSuggestionValue = (suggestion) => {
+    console.log(this.props.onCharacterSelect);
+    this.props.onCharacterSelect(suggestion.name);
   	return suggestion.name;
 	}
 
@@ -74,7 +66,7 @@ export default class CharacterSelectInput extends React.Component {
   render() {
     const { value, suggestions } = this.state;
     const inputProps = {
-      placeholder: "Type 'c'",
+      placeholder: "Enter a character name",
       value,
       onChange: this.onChange
     };

@@ -1,0 +1,73 @@
+.btn_margin{
+	margin: 5px 5px 5px 5px;
+}
+
+.inline{
+	display: inline;
+}
+
+.inline_block{
+  display: inline-block;
+}
+
+.react-autosuggest__container{
+  display: inline;
+}
+
+.description{
+  position: relative;
+	margin-top: 5px;
+  margin-bottom: 5px;
+  margin-left: 5px;
+	padding: 5px;
+	border-radius: 10px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.generic_container{
+  padding: 10px;
+  background-color: rgba(248, 249, 250, 0.8);
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.margin_left_5px {
+  margin-left: 5px;
+}
+
+.margin_top_5px {
+  margin-top: 5px;
+}
+
+.margin_bottom_5px {
+  margin-bottom: 5px;
+}
+
+.padding_5px {
+  padding: 5px;
+}
+
+.flex{
+  display: flex;
+}
+
+.background_all {
+  background-color: #d6daf0;
+}
+
+.background_purple {
+  background-color: #d6daf0;
+}
+
+.background_light_purple{
+  background-color: #eef2ff;
+}
+
+.scoreboard-rank-width {
+  width: 20%;
+}
+
+.scoreboard-col-width {
+  width: 40%;
+}

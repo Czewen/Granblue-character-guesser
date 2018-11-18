@@ -1,0 +1,2 @@
+How to drop,add constraints
+https://stackoverflow.com/questions/5273717/drop-constraint-by-name-in-postgresql

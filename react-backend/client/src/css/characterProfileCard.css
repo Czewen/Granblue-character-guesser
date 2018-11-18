@@ -1,0 +1,103 @@
+.card_list_item_left {
+  font-weight: bold;
+  height: inherit;
+  float: left;
+  width: 35%;
+}
+
+.card_list_item_right {
+  float: left;
+  width: 65%;
+}
+
+#border_override_default {
+  border-width: 0px 1px 0px 0px;
+  border-style: solid;
+}
+
+#border_override_wind {
+  border-width: 0px 1px 0px 0px;
+  border-style: solid;
+  border-color: #66bb6a;
+}
+
+#border_override_water {
+  border-width: 0px 1px 0px 0px;
+  border-style: solid;
+  border-color: #42a5f5;
+}
+
+#border_override_fire {
+  border-width: 0px 1px 0px 0px;
+  border-style: solid;
+  border-color: #ef5350;
+}
+
+#border_override_earth {
+  border-width: 0px 1px 0px 0px;
+  border-style: solid;
+  border-color: #8d6e63;
+}
+
+#border_override_light {
+  border-width: 0px 1px 0px 0px;
+  border-style: solid;
+  border-color: #ffa000;
+}
+
+#border_override_dark {
+  border-width: 0px 1px 0px 0px;
+  border-style: solid;
+  border-color: #7e57c2;
+}
+
+#list-group-item_override_default {
+  padding: 0rem 0rem;
+  display: inline;
+}
+
+#list-group-item_override_wind {
+  padding: 0rem 0rem;
+  background-color: #c8e6c9;
+  border-color: #66bb6a;
+  display: inline;
+}
+
+#list-group-item_override_water {
+  padding: 0rem 0rem;
+  background-color: #bbdefb;
+  border-color: #42a5f5;
+  display: inline;
+}
+
+#list-group-item_override_fire {
+  padding: 0rem 0rem;
+  background-color: #ffcdd2;
+  border-color: #ef5350;
+  display: inline;
+}
+
+#list-group-item_override_earth {
+  padding: 0rem 0rem;
+  background-color: #d7ccc8;
+  border-color: #8d6e63;
+  display: inline;
+}
+
+#list-group-item_override_light {
+  padding: 0rem 0rem;
+  background-color: #ffecb3;
+  border-color: #ffa000;
+  display: inline;
+}
+
+#list-group-item_override_dark {
+  padding: 0rem 0rem;
+  background-color: #d1c4e9;
+  border-color: #7e57c2;
+  display: inline;
+}
+
+.list-group-item-padding {
+  padding: 0.75rem 1.25rem;
+}

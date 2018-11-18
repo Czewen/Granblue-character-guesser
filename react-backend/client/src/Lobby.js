@@ -1,14 +1,14 @@
 import React, { Component } from 'react';
 import { withRouter as Router, Route, Link } from "react-router-dom";
-import './App.css';
-import Modal from 'react-modal';
 import ReactTable from 'react-table';
 import "react-table/react-table.css";
-import JoinRoomComponent from './JoinRoomComponent'
-import CreateRoom from './CreateRoomComponent'
-import GameRoom from './GameRoom'
-import DescribeCharacterInput from './UIComponents/DescribeCharacterInput'
 
+import JoinRoomComponent from './JoinRoomComponent';
+import CreateRoomComponent from './CreateRoomComponent';
+import GameRoom from './GameRoom';
+import $ from 'jquery';
+import "./css/my_styles.css";
+import './App.css';
 
 var API_base = (process.env.NODE_ENV === 'development') 
     ? 'http://localhost:3001'
@@ -16,64 +16,30 @@ var API_base = (process.env.NODE_ENV === 'development')
 
 const customStyles = {
   content : {
-    top                   : '50%',
-    left                  : '50%',
+    top                   : 'auto',
+    left                  : 'auto',
     right                 : 'auto',
     bottom                : 'auto',
-    marginRight           : '-50%',
-    transform             : 'translate(-50%, -50%)'
+    // marginRight           : '-50%',
+    //transform             : 'translate(-50%, -50%)'
   }
 };
 
-Modal.setAppElement('#root')    
-
 class Lobby extends Component {
-  state = {
-    testDescriptors: [],
-    rooms: [],
-    showCreateModal: false,
-    showJoinModal: false
-  }
   constructor() {
     super();
 
     this.state = {
       rooms: [],
-      createModalIsOpen: false,
-      joinModalIsOpen: false,
       joinRoomId: "",
+      testDescriptors: []
     };
 
-    this.showCreateModal = this.showCreateModal.bind(this);
-    this.showJoinModal = this.showJoinModal.bind(this);
-    this.hideCreateModal = this.hideCreateModal.bind(this);
-    this.hideJoinModal = this.hideJoinModal.bind(this);
     this.setRoomId = this.setRoomId.bind(this);
-    this.joinRoom = this.joinRoom.bind(this);
   };
-
-  showCreateModal(){
-    this.setState({ createModalIsOpen: true});
-  }
-
-  showJoinModal(){
-    this.setState({ joinModalIsOpen: true});
-  }
-
-  hideCreateModal(){
-    this.setState({ createModalIsOpen: false});
-  }
-
-  hideJoinModal(){
-    this.setState({ joinModalIsOpen: false});
-  }
 
   setRoomId(event){
     this.setState({joinRoomId: event.target.value});
-  }
-
-  joinRoom(){
-    console.log(this.state.joinRoomId);
   }
 
   componentDidMount() {
@@ -82,14 +48,49 @@ class Lobby extends Component {
       headers: {"Accept": "application/json"}
     })
     .then(res => res.json())
-    .then(rooms => this.setState({ rooms }));
+    .then(rooms => {
+      console.log("Rooms: ", rooms);
+      this.setState({ 
+        rooms: rooms 
+      })
+    })
+    .catch(error => {
+      console.log(error);
+    });
+
+    var self = this;
+    $('#joinRoomModal').on('hidden.bs.modal', function(){
+      self.setState({
+        joinRoomId: ""
+      })
+    });
+  }
+
+  onClickRow = (state, rowInfo, column, instance) => {
+    var self = this;
+    return {
+      onClick: (e, handleOriginal) => {
+        // console.log("A Td Element was clicked!");
+        // console.log("it produced this event:", e);
+        // console.log("It was in this column:", column);
+         console.log("It was in this row:", rowInfo);
+        // console.log("It was in this table instance:", instance);
+        console.log(rowInfo.row.id);
+        self.setState({
+          joinRoomId: rowInfo.row.id
+        },
+        () => {
+          $('#joinRoomModal').modal('show');
+        })
+      }
+    };  
   }
 
   render() {
     console.log(this.state.rooms);
 
     var columns = [{
-      Header: 'Id',
+      Header: 'Room Id',
       accessor: 'id' // String-based value accessors!
     }, {
       Header: 'Current capacity',
@@ -99,37 +100,22 @@ class Lobby extends Component {
       Header: 'Max capacity',
       accessor: 'max_capacity',
       Cell: props => <span className='number'>{props.value}</span> 
-    }, {
-      Header: 'Difficulty',
-      accessor: 'difficulty'
     }]
-
+    console.log("this.state: ", this.state);
     return (
-      <div>
-        <DescribeCharacterInput descriptors={this.state.testDescriptors}/>
+      <div className="bg-white">
         <ReactTable 
         data={this.state.rooms} 
         columns={columns}
         defaultPageSize={10}
-        className="-striped -highlight"/>
-        <button onClick={this.showCreateModal}>Create room</button>
-        <button onClick={this.showJoinModal}>Join room</button>
-        <Modal
-          isOpen={this.state.createModalIsOpen}
-          onRequestClose={this.hideCreateModal}
-          style={customStyles}>
-          <div>
-            <CreateRoom username={this.state.username}/>
-            <button onClick={this.hideCreateModal}>Cancel</button>
-          </div>
-        </Modal>
-        <Modal
-          isOpen={this.state.joinModalIsOpen}
-          onRequestClose={this.hideJoinModal}
-          style={customStyles}>
-          <JoinRoomComponent joinRoomId={this.state.joinRoomId}></JoinRoomComponent>
-          <button onClick={this.hideJoinModal}>Cancel</button>
-        </Modal>
+        className="-striped -highlight"
+        getTdProps={this.onClickRow}/>
+        <button type="button" className="btn btn-primary btn_margin" data-toggle="modal"
+          data-target="#joinRoomModal">Join room</button>
+        <button type="button" className="btn btn-primary" data-toggle="modal"
+          data-target="#createRoomModal">Create room</button>
+        <CreateRoomComponent/>
+        <JoinRoomComponent joinRoomId={this.state.joinRoomId}/>
         
       </div>)
   }
