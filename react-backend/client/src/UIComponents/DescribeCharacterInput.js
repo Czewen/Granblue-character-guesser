@@ -9,7 +9,7 @@ export default class DescribeCharacterInput extends React.Component{
 			'descriptors': this.props.descriptors
 		};
 
-		console.log(this.props);
+		//console.log(this.props);
 	};
 
 	onChange = (event) => {
@@ -19,13 +19,13 @@ export default class DescribeCharacterInput extends React.Component{
   };
 
   onKeyPress = (event) => {
-  	//console.log("keypress: ", event.key);
+  	////console.log("keypress: ", event.key);
   	if(event.key === 'Enter'){
   		var newArr = this.state.descriptors.slice(0, this.state.descriptors.length);
 
       var values = this.state.inputVal.split(",");
   		for(var value of values){
-        if(value != ""){
+        if(value !== ""){
           newArr.push(value);
         }
       }
@@ -50,15 +50,15 @@ export default class DescribeCharacterInput extends React.Component{
   };
 
   removeDescription = (index) => {
-    console.log("Remove description index: ", index);
+    //console.log("Remove description index: ", index);
     var newDescriptors = this.state.descriptors.slice(0);
-    console.log("new descriptors before splice: ", newDescriptors);
+    //console.log("new descriptors before splice: ", newDescriptors);
     newDescriptors.splice(index, 1);
-    console.log("new descriptors after splice: ", newDescriptors);
+    //console.log("new descriptors after splice: ", newDescriptors);
     this.setState({
       descriptors: newDescriptors
     }, () => {
-      console.log("descriptors: ", this.state.descriptors);
+      //console.log("descriptors: ", this.state.descriptors);
       this.props.updateFunction(this.state.descriptors);
     })
   };

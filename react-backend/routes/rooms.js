@@ -26,7 +26,7 @@ db.one('SELECT COUNT(*) FROM characters')
 })
 
 var minutesInMs = 60 * 1000;
-var clearOldRooms = setInterval(deleteOldRooms, 5 * 1000);
+var clearOldRooms = setInterval(deleteOldRooms, 5 * minutesInMs);
 /***********************************************************************/
 
 function getRandomCharacterId(){
@@ -198,9 +198,9 @@ function handleEvent(updateType, roomInfo){
 
 function closeRoom(roomInfo){
 	var query = 'update rooms set closed=true WHERE id=$1';
-	db.one(query, roomInfo.id)
-	.then(result => {
-    roomInfo.gameState = 'closed';
+  roomInfo.gameState = 'closed';
+	db.none(query, roomInfo.id)
+	.then(() => {
 		console.log("Closed room with id: ", roomInfo.id);
 	})
 	.catch(error => {
@@ -302,7 +302,7 @@ function selectNextQuestion(roomInfo, sendToClients){
 }
 
 router.get('/', function(req, res, next) {
-	db.any('SELECT * FROM rooms WHERE closed=false')
+	db.any('SELECT * FROM rooms WHERE closed=false AND started=false')
     .then(function(data) {
         res.json(data);
     })
@@ -317,8 +317,8 @@ router.post('/create', function(req, res, next){
 	console.log(req.body);
 	var body = req.body;
 	var newRoomId = makeid();
-	var query = 'INSERT INTO ROOMS(id, curr_capacity, max_capacity, closed, difficulty, owner, max_rounds)' 
-				+ 'VALUES($1, 1, $2, FALSE, $3, $4, $5)';	
+	var query = 'INSERT INTO ROOMS(id, curr_capacity, max_capacity, closed, started, difficulty, owner, max_rounds)' 
+				+ 'VALUES($1, 1, $2, FALSE, FALSE, $3, $4, $5)';	
 	db.any(query, [newRoomId, body.capacity, body.difficulty, body.owner, body.maxRounds])
 	.then(function(data){
 		console.log("INSERT SUCCESS: " ,data);
@@ -408,7 +408,7 @@ router.get('/room', function(req, res, next){
     else if(room.gameState === 'closed'){
       return res.status(200).json({
         error: true,
-        closed: true
+        roomClosed: true
       });
     }
 
@@ -446,8 +446,20 @@ router.post('/startGame', function(req, res, next){
 	}
 	else{
 		var roomId = req.query.room_id;
-		myEmitter.emit('event', 'startQuestionRound', rooms[roomId]);
-		res.status(200).send('OK');
+    if(!rooms[roomId]){
+      return res.status(200).json({
+        error: true,
+        roomNotExist: true
+      });
+    }
+    db.none('UPDATE rooms set started=true where id=$1', roomId)
+    .then(() => {
+      myEmitter.emit('event', 'startQuestionRound', rooms[roomId]);
+    res.status(200).send('OK');
+    })
+    .catch(error => {
+      console.log("Failed to update room started column: ", error);
+    })		
 	}
 })
 
@@ -591,7 +603,10 @@ router.get('/roomQuestion', function(req, res, next){
 	var roomInfo = rooms[req.query.room_id];
 	if(roomInfo === undefined){
 		var errMsg = 'Could not find question with ID: ' + questionId
-			return res.status(200).json({'error': true, 'message': errMsg});
+		return res.status(200).json({
+      'error': true, 
+      'message': errMsg
+    });
 	}
 	
   var username = req.query.username;
@@ -621,9 +636,9 @@ router.get('/roomQuestion', function(req, res, next){
 
 
 router.get('/getMyQuestion', function(req, res, next){
+  console.log("getMyQuestion query params: ", req.query);
 	if(req.query.username === undefined || req.query.room_id === undefined
 			|| req.query.round === undefined){
-		console.log("getMyQuestion query params: ", req.query);
 		res.status(400).end();
 	}
 

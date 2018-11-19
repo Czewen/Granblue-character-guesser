@@ -18,7 +18,7 @@ function Descriptions(props){
 	if(!props.descriptions)
 		return null;
 	var arr = props.descriptions.split(",");
-	console.log("props descriptiosn: ", props.descriptions);
+	//console.log("props descriptiosn: ", props.descriptions);
 	return (
 		<div className="inline">
 			{
@@ -80,14 +80,25 @@ export default class AnswerViewComponent extends React.Component {
 
 		axios.get(API_base + '/api/rooms/roomQuestion' + params, {})
 		.then(function(response){
-			console.log("roomQuestion response: ", response);
+			//console.log("roomQuestion response: ", response);
       if(!response.data.error){
 
         if(response.data.question.owner != self.props.username){
 
           var imgSrc = "";
           if(response.data.hasAnswered){
-            imgSrc = '../assets/' + response.data.submittedAnswer + '.png';
+            var characterName = response.data.submittedAnswer;
+            var nameSplit = characterName.split(" ");
+            if(nameSplit.length > 0){
+              characterName = "";
+              for(var i = 0; i<nameSplit.length; i++){
+                characterName += nameSplit[i];
+                if(i != nameSplit.length - 1){
+                  characterName += "_";
+                }
+              }
+            }
+            imgSrc = '../assets/' + characterName + '.png';
           }
 
           self.setState({
@@ -99,7 +110,19 @@ export default class AnswerViewComponent extends React.Component {
           });
         }
         else{
-          var imgSrc = '../assets/' + response.data.character.name + '.png';
+          var characterName = response.data.character.name;
+          var nameSplit = characterName.split(" ");
+          if(nameSplit.length > 0){
+            characterName = "";
+            for(var i = 0; i<nameSplit.length; i++){
+              characterName += nameSplit[i];
+              if(i != nameSplit.length - 1){
+                characterName += "_";
+              }
+            }
+          }
+
+          var imgSrc = '../assets/' + characterName + '.png';
           self.setState({
             question: response.data.question,
             charImgSrc: imgSrc,
@@ -118,7 +141,7 @@ export default class AnswerViewComponent extends React.Component {
       }		
 		})
 		.catch(function(error){
-			console.log("roomQuestion error: ", error);
+			//console.log("roomQuestion error: ", error);
 		})
 	};
 
@@ -127,13 +150,13 @@ export default class AnswerViewComponent extends React.Component {
 
     axios.get(API_base + '/api/characters')
     .then(function(response){
-      //console.log("Character suggestions response: ", response);
+      ////console.log("Character suggestions response: ", response);
       self.setState({
         characterSuggestions: response.data
       })
     })
     .catch(function(error){
-      console.log("Error when fetching character names: ", error);
+      //console.log("Error when fetching character names: ", error);
     })
   }
 
@@ -141,7 +164,7 @@ export default class AnswerViewComponent extends React.Component {
 
     var self = this;
 
-    console.log("CharacterSelectInputRef: ", this.characterSelectInputRef);
+    //console.log("CharacterSelectInputRef: ", this.characterSelectInputRef);
     var answer = this.characterSelectInputRef.current.state.value;
 
     if(answer === ""){
@@ -159,10 +182,10 @@ export default class AnswerViewComponent extends React.Component {
 			answer: answer
 		};
 
-		console.log("Answer body: ", body);
+		//console.log("Answer body: ", body);
 		axios.post(API_base + '/api/rooms/submitAnswer', body)
 		.then(function(response){
-			console.log("Submit answer: ", response);
+			//console.log("Submit answer: ", response);
       self.setState({
         error: false,
         submittedAnswer: answer,
@@ -172,12 +195,12 @@ export default class AnswerViewComponent extends React.Component {
       });
 		})
 		.catch(function(error){
-			console.log("Submit answer error: ", error);
+			//console.log("Submit answer error: ", error);
 		})
 	};
 
 	onCharacterSelect = (character) => {
-    //console.log("onCharacterSelect: ", character);
+    ////console.log("onCharacterSelect: ", character);
     var characterName = character.trim();
     var nameParts = character.split(" ");
     if(nameParts.length > 1){
@@ -198,7 +221,7 @@ export default class AnswerViewComponent extends React.Component {
 
   componentDidUpdate(prevProps){
     if(prevProps.currRoomQuestionNum != this.props.currRoomQuestionNum){
-      console.log("Component did update: call getRoomQuestion" );
+      //console.log("Component did update: call getRoomQuestion" );
       this.getRoomQuestion();
     }
   }
@@ -219,8 +242,8 @@ export default class AnswerViewComponent extends React.Component {
     const autoSuggestDivStyle = {
       'width': '35%'
     }
-    console.log("render question ", this.state.question);
-    console.log("username: ", this.props.username);
+    //console.log("render question ", this.state.question);
+    //console.log("username: ", this.props.username);
 		return (
 			<div>
         { this.state.question.owner != this.props.username && (

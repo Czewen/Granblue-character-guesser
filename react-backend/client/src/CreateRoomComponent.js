@@ -62,7 +62,7 @@ class CreateRoomComponent extends React.Component{
       difficulty: "EASY"
     })
     .then(function(response){
-      console.log("response: ", response);
+      //console.log("response: ", response);
       var data = response.data;
       if(data.success == true){
         var path = '/room/' + data.room_id;
@@ -74,7 +74,7 @@ class CreateRoomComponent extends React.Component{
       }      
     })
     .catch(function(error){
-      console.log(error);
+      //console.log(error);
       self.setState({
         error: true,
         errorMessage: "An error occured. Please try again."
@@ -86,7 +86,7 @@ class CreateRoomComponent extends React.Component{
     this.setState({
       maxCapacity: event.target.value
     }, () => {
-      console.log("capacity: ", this.state.maxCapacity);
+      //console.log("capacity: ", this.state.maxCapacity);
     })  
   }
 
@@ -100,7 +100,7 @@ class CreateRoomComponent extends React.Component{
     this.setState({
       maxRounds: event.target.value
     }, () => {
-      console.log("Number of rounds: ", this.state.maxRounds);
+      //console.log("Number of rounds: ", this.state.maxRounds);
     })
   }
 

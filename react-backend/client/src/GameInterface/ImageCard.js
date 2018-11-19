@@ -13,7 +13,7 @@ function ImageModal(props){
   const fullOpacity = {
     'opacity': '1.0'
   }
-  console.log("props src: ", props.src);
+  //console.log("props src: ", props.src);
   return (
     <div className="modal" role="img" id="imageModal" tabIndex="-1">
       <div className="modal-dialog">
@@ -51,7 +51,6 @@ export default class ImageCard extends React.Component {
       <div>
         <img src={imgSrc} width={this.props.width} height={this.props.height}
           data-target="#imageModal" data-toggle="modal"/>
-        }
         <ImageModal src={imgSrc} placeholder={placeholderSrc}/>
       </div>
     )

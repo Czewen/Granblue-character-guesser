@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React from 'react';
 import axios from 'axios';
 import ReactTable from 'react-table';
 import "react-table/react-table.css";
@@ -107,11 +107,11 @@ class GameRoom extends React.Component {
         timerLock: false
   		};
 
-      this.timerMaxDuration =  3.0;
+      this.timerMaxDuration =  5.0;
 
-  		console.log("Game room props: ", this.props);
-  		console.log("Game room id: ", this.state.roomId);
-  		console.log(this.location);
+  		//console.log("Game room props: ", this.props);
+  		//console.log("Game room id: ", this.state.roomId);
+  		//console.log(this.location);
   		this.startGame = this.startGame.bind(this);
   		this.handleEvent = this.handleEvent.bind(this);
   		this.updateScores = this.updateScores.bind(this);
@@ -131,7 +131,7 @@ class GameRoom extends React.Component {
 		var params = "?room_id=" + this.state.roomId + "&username=" + this.state.username;
 		axios.post(API_base + '/api/rooms/startGame' + params, {})
 		.then(function(response){
-			console.log("Start game response: ", response );
+			//console.log("Start game response: ", response );
 		})
 		.catch(function(error){
 
@@ -140,30 +140,30 @@ class GameRoom extends React.Component {
 
 	testUpdateScore(){
 		var params = "?username=" + this.state.username + "&room_id=" + this.state.roomId;
-		console.log("called test update score");
+		//console.log("called test update score");
 		axios.get(API_base + '/api/rooms/testUpdateScore' + params, {})
 		.then(function(response){
-			console.log(response);
+			//console.log(response);
 		})
 		.catch(function(error){
-			console.log("testUpdateScore err: ", error);
+			//console.log("testUpdateScore err: ", error);
 		})
 	}
 
 	hideAnswerResultsModal = () => {
-		console.log("hide player modal");
+		//console.log("hide player modal");
 		this.setState({
 			showAnswerResultsModal: false
 		})
 	};
 
 	handleEvent(eventData){
-		console.log("handleEvent");
+		//console.log("handleEvent");
     var self =  this;
 
 		switch(eventData.eventType){
 			// case 'scores':
-			// 	console.log('new scores: ', eventData.playerScores);
+			// 	//console.log('new scores: ', eventData.playerScores);
 			// 	this.updateScores(eventData.playerScores);
 			// 	break;
       case 'playerJoin':
@@ -171,14 +171,14 @@ class GameRoom extends React.Component {
         break;
 
 			case 'disconnect':
-				console.log('host disconnected');
+				//console.log('host disconnected');
 				this.setState({disconnect: true});
 				break;
 
 			case 'startQuestionRound':
-				console.log('question round: ', eventData);
+				//console.log('question round: ', eventData);
         var timeDiff = (Date.now() - eventData.roundStartTime)/1000;
-        console.log("timediff: ", timeDiff);
+        //console.log("timediff: ", timeDiff);
 
         if(timeDiff < this.timerMaxDuration){
           var seconds = Math.ceil(this.timerMaxDuration - timeDiff);   
@@ -197,13 +197,13 @@ class GameRoom extends React.Component {
           });
 
           var timeoutFunc = setTimeout(function(){
-            //console.log("Start new question round: hiding modal");
+            ////console.log("Start new question round: hiding modal");
             $('#timerModal').modal('hide');
             self.setState({
               roundStartTime: undefined
             });
           }, seconds * 1000);
-          console.log("timeoutFunc: ", timeoutFunc);
+          //console.log("timeoutFunc: ", timeoutFunc);
         }
         else{
           this.setState({
@@ -218,7 +218,7 @@ class GameRoom extends React.Component {
 				break;
 
 			case 'startAnswerRound':
-				console.log("answer round");
+				//console.log("answer round");
         // var timeDiff = (Date.now() - eventData.roundStartTime)/1000;
         // if(timeDiff < this.timerMaxDuration){
         //   var seconds = Math.ceil(this.timerMaxDuration - timeDiff);
@@ -237,7 +237,7 @@ class GameRoom extends React.Component {
         //     });
         //     $('#timerModal').modal('hide');
         //   }, seconds * 1000);
-        //   console.log("timeoutFunc: ", timeoutFunc);
+        //   //console.log("timeoutFunc: ", timeoutFunc);
         // }
         // else{
         //   this.setState({
@@ -273,7 +273,7 @@ class GameRoom extends React.Component {
         break;
 
 			case 'sendAnswers':
-				console.log("sendAnswers eventData: ", eventData);
+				//console.log("sendAnswers eventData: ", eventData);
 				this.setState({
 					playerScores: eventData.playerScores,
 					answer: eventData.trueAnswer,
@@ -291,7 +291,7 @@ class GameRoom extends React.Component {
         });
 				break;
 			default:
-				console.log("Received unknown event: ", eventData.eventType);
+				//console.log("Received unknown event: ", eventData.eventType);
 		}
 	}
 
@@ -309,17 +309,17 @@ class GameRoom extends React.Component {
 
 		var self = this;
 		var params = "?username=" + this.state.username + "&room_id=" + this.state.roomId;
-		console.log("Leave room: ", this.state.roomId );
+		//console.log("Leave room: ", this.state.roomId );
 		axios.post(API_base +'/api/rooms/leave' + params, {})
 		.then(function(response){
-			console.log("leave response: ", response);
-			console.log("room owner: ", self.state.owner);
+			//console.log("leave response: ", response);
+			//console.log("room owner: ", self.state.owner);
 			if(response.status == 200 && self.state.username != self.state.owner){
 				self.returnToLobby();
 			}
 		})
 		.catch(function(error){
-			console.log("Error occured while trying to leave room: ", error);
+			//console.log("Error occured while trying to leave room: ", error);
       self.returnToLobby();
 		})
 	}
@@ -334,15 +334,15 @@ class GameRoom extends React.Component {
   syncRoomState = () => {
     let self = this;
     var params = "?username=" + this.state.username + "&room_id=" + this.state.roomId;
-    console.log("GET from: ", API_base + '/api/rooms/room' + params);
+    //console.log("GET from: ", API_base + '/api/rooms/room' + params);
     axios.get(API_base + '/api/rooms/room' + params, {})
     .then(function(response){
-      console.log("response.data: ", response.data);
+      //console.log("response.data: ", response.data);
       //just for testing purposes for now
 
       var data = response.data;
       var gameStarted = data.gameState === "lobby" ? false : true;
-      console.log("syncRoomState response: ", response);
+      //console.log("syncRoomState response: ", response);
       if(response.status === 200 ){
 
         if(response.data.roomClosed){
@@ -362,7 +362,7 @@ class GameRoom extends React.Component {
 
         if(data.roundStartTime && gameStarted === "question" ){
           var timeDiff = (Date.now() - data.roundStartTime)/1000;
-          console.log("syncRoomState timeDiff: ", timeDiff);
+          //console.log("syncRoomState timeDiff: ", timeDiff);
           if(timeDiff < this.timerMaxDuration){
             var seconds = Math.ceil(this.timerMaxDuration - timeDiff);
             self.setState({
@@ -378,13 +378,13 @@ class GameRoom extends React.Component {
                self.timerModalRef.current.startCountDown(seconds);
             }); 
             var timeoutFunc = setTimeout(function(){
-              console.log("Hiding timer modal");
+              //console.log("Hiding timer modal");
               $('#timerModal').modal('hide');
               self.setState({
                 roundStartTime: undefined
               });
             }, seconds * 1000);
-            console.log("timeoutFunc: ", timeoutFunc);
+            //console.log("timeoutFunc: ", timeoutFunc);
           return;
           }      
         }
@@ -402,7 +402,7 @@ class GameRoom extends React.Component {
       }     
     })
     .catch(function(error){
-      console.log(error);
+      //console.log(error);
     })
   }
 
@@ -418,19 +418,19 @@ class GameRoom extends React.Component {
 
   hideModalFunction = (e) => {
     hideModalCounter++;
-    console.log("Called hidemodalfunction: ", hideModalCounter);
+    //console.log("Called hidemodalfunction: ", hideModalCounter);
     this.setState({
       showAnswerResultsModal: false
     }, 
     () => {
       if(this.state.roundStartTime && this.state.gameState === "question"){
         var timeDiff = (Date.now() - this.state.roundStartTime)/1000;
+        //console.log("Remaining time (seconds): ", timeDiff);
         if(timeDiff > 1.0 && timeDiff < this.timerMaxDuration){
           var seconds = Math.ceil(this.timerMaxDuration - timeDiff);
           $('#timerModal').modal('show');
           this.timerModalRef.current.startCountDown(seconds);
         }
-        
       }
     });
   }

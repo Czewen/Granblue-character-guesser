@@ -27,7 +27,7 @@ export default class Home extends React.Component {
     return (
       <div className="bg">
         <div id="homeCardRoot"className="card text-center home_card">
-          <img class="card-img-top" src="../assets/title.png"/>
+          <img className="card-img-top" src="../assets/title.png"/>
           <ul className="list-group list-group-flush">
             <li id="homeCardListItem" className="list-group-item" onClick={this.goToLobby}>
               Lobby

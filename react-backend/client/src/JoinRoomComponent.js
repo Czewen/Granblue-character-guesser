@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React from 'react';
 import './App.css';
 import axios from 'axios';
 import { withRouter } from 'react-router';
@@ -37,7 +37,7 @@ class JoinRoomComponent extends React.Component {
 	}
 
 	onChangeUsername(event){
-		//console.log("set username: ", event.target.value);
+		////console.log("set username: ", event.target.value);
 		this.setState({username: event.target.value});
 	}
 
@@ -102,7 +102,7 @@ class JoinRoomComponent extends React.Component {
 			}
       else{
         var errMsg = "";
-        console.log("JoinRoomComponent error: ", response.data);
+        //console.log("JoinRoomComponent error: ", response.data);
         if(response.data.roomNotExist) {
           errMsg = "Room with id: " + self.state.roomIdInput + " does not exist.";
         }
@@ -124,7 +124,7 @@ class JoinRoomComponent extends React.Component {
       }
 		})
 		.catch(function(error){
-			console.log(error);
+			//console.log(error);
       self.setState({
         error: true,
         errorMessage: "An error occured. Please try again."

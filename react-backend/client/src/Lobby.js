@@ -1,11 +1,10 @@
-import React, { Component } from 'react';
+import React from 'react';
 import { withRouter as Router, Route, Link } from "react-router-dom";
 import ReactTable from 'react-table';
 import "react-table/react-table.css";
 
 import JoinRoomComponent from './JoinRoomComponent';
 import CreateRoomComponent from './CreateRoomComponent';
-import GameRoom from './GameRoom';
 import $ from 'jquery';
 import "./css/my_styles.css";
 import './App.css';
@@ -25,7 +24,7 @@ const customStyles = {
   }
 };
 
-class Lobby extends Component {
+class Lobby extends React.Component {
   constructor() {
     super();
 

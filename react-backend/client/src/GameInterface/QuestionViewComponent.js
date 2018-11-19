@@ -55,14 +55,14 @@ export default class QuestionViewComponent extends React.Component{
 	};
 
 	componentDidMount(){
-    console.log("Question view props: ", this.props);
+    //console.log("Question view props: ", this.props);
 		var params = "?username=" + this.props.username +"&room_id=" + this.props.roomId + "&round=" + this.props.round;
-		console.log("getMyQuestion params: ", params );
+		//console.log("getMyQuestion params: ", params );
 
 		var self = this;
 		axios.get(API_base + '/api/rooms/getMyQuestion' + params, {})
 		.then(function(response){
-			console.log("getMyQuestion: ", response);
+			//console.log("getMyQuestion: ", response);
       
       var characterName = response.data.character.name;
       var nameParts = characterName.split(" ");
@@ -84,7 +84,14 @@ export default class QuestionViewComponent extends React.Component{
       }
 
       var restrictedWordsLookup = {};
-      var restrictedWords = response.data.character.restrictedWords.split(","); 
+      var restrictedWords;
+      if(response.data.character.restrictedWords === ""){
+        restrictedWords = [];
+      }
+      else{
+        restrictedWords = response.data.character.restrictedWords.split(",");
+      }
+
 
       for(let key of Object.keys(response.data.character)){
         if(key != "storyExclusive" && key != "characterId" && key != "restrictedWords"){
@@ -99,7 +106,7 @@ export default class QuestionViewComponent extends React.Component{
         }
       }
 
-      console.log("restrictedWords: ", restrictedWords);
+      //console.log("restrictedWords: ", restrictedWords);
 
       for(var word of restrictedWords){
         restrictedWordsLookup[word.trim().toLowerCase()] = true;
@@ -118,12 +125,12 @@ export default class QuestionViewComponent extends React.Component{
       self.props.updatePlayersReady(response.data.playersReady);
 		})
 		.catch(function(error){
-			console.log("QuestionViewComponent axios error: ", error);
+			//console.log("QuestionViewComponent axios error: ", error);
 		});
 	};
 
 	submitDescriptions = () => {
-		console.log("descriptions to submit: ", this.state.descriptions);
+		//console.log("descriptions to submit: ", this.state.descriptions);
 		var body = {
 			questionId: this.state.questionId,
 			room_id: this.props.roomId,
@@ -132,9 +139,9 @@ export default class QuestionViewComponent extends React.Component{
 		};
 
     var self = this;
-    console.log("inputRef: ", this.inputRef);
+    //console.log("inputRef: ", this.inputRef);
 
-    console.log("Num descriptions: ", this.state.descriptions.length);
+    //console.log("Num descriptions: ", this.state.descriptions.length);
     if(this.state.descriptions.length > 3){
       this.setState({
         error: true,
@@ -191,7 +198,7 @@ export default class QuestionViewComponent extends React.Component{
 			}
 		})
 		.catch(function(error){
-			console.log("Tried to submit descriptions: ", error);
+			//console.log("Tried to submit descriptions: ", error);
 		});
 	}
 
