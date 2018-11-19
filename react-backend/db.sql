@@ -4,7 +4,6 @@ CREATE TABLE rooms (
 	max_capacity integer CHECK (max_capacity > 0 AND max_capacity < 5),
   started boolean,
 	closed boolean,
-	difficulty difficulty_setting,
 	description text,
 	created timestamp DEFAULT now(),
   owner text,

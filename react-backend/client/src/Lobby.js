@@ -86,12 +86,17 @@ class Lobby extends React.Component {
   }
 
   render() {
-    //console.log(this.state.rooms);
+    // console.log(this.state.rooms);
 
     var columns = [{
       Header: 'Room Id',
       accessor: 'id' // String-based value accessors!
-    }, {
+    }, 
+    {
+      Header: 'Room owner',
+      accessor: 'owner'
+    },
+    {
       Header: 'Current capacity',
       accessor: 'curr_capacity',
       Cell: props => <span className='number'>{props.value}</span> // Custom cell components!

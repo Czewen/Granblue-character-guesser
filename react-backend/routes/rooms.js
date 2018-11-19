@@ -310,9 +310,9 @@ router.post('/create', function(req, res, next){
 	// console.log(req.body);
 	var body = req.body;
 	var newRoomId = makeid();
-	var query = 'INSERT INTO ROOMS(id, curr_capacity, max_capacity, closed, started, difficulty, owner, max_rounds)' 
-				+ 'VALUES($1, 1, $2, FALSE, FALSE, $3, $4, $5)';	
-	db.any(query, [newRoomId, body.capacity, body.difficulty, body.owner, body.maxRounds])
+	var query = 'INSERT INTO ROOMS(id, curr_capacity, max_capacity, closed, started, owner, max_rounds)' 
+				+ 'VALUES($1, 1, $2, FALSE, FALSE, $3, $4)';	
+	db.any(query, [newRoomId, body.capacity, body.owner, body.maxRounds])
 	.then(function(data){
 		// console.log("INSERT SUCCESS: " ,data);
 		// console.log("Creating room with id: ", newRoomId);
