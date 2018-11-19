@@ -10,6 +10,17 @@ CREATE TABLE rooms (
   max_rounds integer
 );
 
+CREATE Table Characters(
+  character_id SERIAL PRIMARY KEY,
+  name varchar(50),
+  element varchar(10),
+  race varchar(10),
+  weapon varchar(20),
+  style varchar(10),
+  story_exclusive boolean,
+  restricted_words text
+);
+
 CREATE Table Questions (
 	id SERIAL PRIMARY KEY,
 	roomId varchar(8) REFERENCES rooms(id) ON DELETE CASCADE,
@@ -19,14 +30,5 @@ CREATE Table Questions (
 	description text
 );
 
-CREATE Table Characters(
-	character_id SERIAL PRIMARY KEY,
-	name varchar(50),
-  element varchar(10),
-	race varchar(10),
-	weapon varchar(20),
-  style varchar(10),
-	story_exclusive boolean,
-	restricted_words text
-);
+
 
