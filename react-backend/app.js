@@ -1,4 +1,4 @@
-
+require('dotenv').config();
 var cors = require('cors')
 var createError = require('http-errors');
 var express = require('express');
@@ -25,10 +25,16 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', indexRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/rooms', roomsRouter);
 app.use('/api/characters', charactersRouter);
+
+if(process.env.PRODUCTION){
+  app.use(express.static(path.join(__dirname, 'client/build')));
+  app.get("/*", function(req, res){
+    res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
+  })
+}
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

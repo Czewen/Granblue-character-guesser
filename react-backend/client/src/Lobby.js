@@ -48,13 +48,13 @@ class Lobby extends React.Component {
     })
     .then(res => res.json())
     .then(rooms => {
-      console.log("Rooms: ", rooms);
+      //console.log("Rooms: ", rooms);
       this.setState({ 
         rooms: rooms 
       })
     })
     .catch(error => {
-      console.log(error);
+      //console.log(error);
     });
 
     var self = this;
@@ -69,12 +69,12 @@ class Lobby extends React.Component {
     var self = this;
     return {
       onClick: (e, handleOriginal) => {
-        // console.log("A Td Element was clicked!");
-        // console.log("it produced this event:", e);
-        // console.log("It was in this column:", column);
-         console.log("It was in this row:", rowInfo);
-        // console.log("It was in this table instance:", instance);
-        console.log(rowInfo.row.id);
+        // //console.log("A Td Element was clicked!");
+        // //console.log("it produced this event:", e);
+        // //console.log("It was in this column:", column);
+         //console.log("It was in this row:", rowInfo);
+        // //console.log("It was in this table instance:", instance);
+        //console.log(rowInfo.row.id);
         self.setState({
           joinRoomId: rowInfo.row.id
         },
@@ -86,7 +86,7 @@ class Lobby extends React.Component {
   }
 
   render() {
-    console.log(this.state.rooms);
+    //console.log(this.state.rooms);
 
     var columns = [{
       Header: 'Room Id',
@@ -100,7 +100,7 @@ class Lobby extends React.Component {
       accessor: 'max_capacity',
       Cell: props => <span className='number'>{props.value}</span> 
     }]
-    console.log("this.state: ", this.state);
+    //console.log("this.state: ", this.state);
     return (
       <div className="bg-white">
         <ReactTable 

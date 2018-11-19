@@ -1,8 +1,7 @@
+
 var pgp = require('pg-promise')(/*options*/)
 
-var vals = {
-  dbAddress: "postgres://Cze Wen:admin@localhost:5432/granblue"
-};
-vals["dbInstance"] = pgp(vals.dbAddress);
+var vals = {};
+vals["dbInstance"] = pgp(process.env.DB_STRING);
 
 module.exports = vals;
