@@ -491,9 +491,9 @@ router.get('/eventstream', function(req, res, next){
 	    });
 
 	    roomInfo.clients[username] = res;
-	    console.log("Registered user in eventstream: ", username);
+	    //console.log("Registered user in eventstream: ", username);
 	    var c = Object.keys(roomInfo.clients);
-	    console.log("clients: ", c);
+	    //console.log("clients: ", c);
 	}
 })
 
