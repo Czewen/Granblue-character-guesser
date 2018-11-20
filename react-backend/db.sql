@@ -1,6 +1,6 @@
 CREATE TABLE rooms (
 	ID varchar(8) PRIMARY KEY,
-	curr_capacity integer CHECK (curr_capacity > 0 AND curr_capacity < max_capacity),
+	curr_capacity integer CHECK (curr_capacity > 0 AND curr_capacity <= max_capacity),
 	max_capacity integer CHECK (max_capacity > 0 AND max_capacity < 5),
   started boolean,
 	closed boolean,
