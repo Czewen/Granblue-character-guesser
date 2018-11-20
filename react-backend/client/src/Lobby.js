@@ -48,7 +48,7 @@ class Lobby extends React.Component {
     })
     .then(res => res.json())
     .then(rooms => {
-      //console.log("Rooms: ", rooms);
+      console.log("Rooms: ", rooms);
       this.setState({ 
         rooms: rooms 
       })

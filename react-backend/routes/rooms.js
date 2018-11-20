@@ -373,6 +373,7 @@ router.put('/join', function(req, res, next){
     })
     .catch(error => {
     	if(error.code == capacity_error_code){
+        console.log("User join room: ", error);
     		return res.status(200).send({"error": true, "roomFull": true});
     	}
     	return res.status(500).send();

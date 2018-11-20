@@ -32,6 +32,7 @@ app.use('/api/characters', charactersRouter);
 if(process.env.PRODUCTION){
   app.use(express.static(path.join(__dirname, 'client/build')));
   app.get("/*", function(req, res){
+    console.log("serve index.html");
     res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
   })
 }
