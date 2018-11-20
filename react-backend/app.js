@@ -13,7 +13,7 @@ var charactersRouter = require('./routes/characters');
 
 var app = express();
 
-router.all('*', cors({
+app.use(cors({
   credentials: true, 
   origin: '*',
   preflightContinue: true  
