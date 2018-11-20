@@ -1,4 +1,5 @@
 var express = require('express');
+var cors = require('cors');
 var router = express.Router();
 var pgp = require('pg-promise')(/*options*/)
 // var db = pgp('postgres://Cze Wen:admin@localhost:5432/granblue')
@@ -293,6 +294,8 @@ function selectNextQuestion(roomInfo, sendToClients){
 		})
 	}
 }
+
+router.all('*', cors());
 
 router.get('/', function(req, res, next) {
 	db.any('SELECT * FROM rooms WHERE closed=false AND started=false')
