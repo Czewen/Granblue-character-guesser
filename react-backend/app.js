@@ -13,7 +13,7 @@ var charactersRouter = require('./routes/characters');
 
 var app = express();
 
-app.use(cors({credentials: true, origin: true}));
+app.use(cors());
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
