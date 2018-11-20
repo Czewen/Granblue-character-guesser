@@ -8,7 +8,7 @@ var db = globalVals.dbInstance;
 
 router.all('*', cors({
   credentials: true, 
-  origin: 'http://www.soumatou.moe',
+  origin: '*',
   preflightContinue: true  
 }));
 
