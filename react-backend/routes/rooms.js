@@ -295,7 +295,11 @@ function selectNextQuestion(roomInfo, sendToClients){
 	}
 }
 
-router.all('*', cors({credentials: true, origin: true}));
+router.all('*', cors({
+  credentials: true, 
+  origin: '*',
+  preflightContinue: true  
+}));
 
 router.get('/', function(req, res, next) {
 	db.any('SELECT * FROM rooms WHERE closed=false AND started=false')
