@@ -10,8 +10,8 @@ import "./css/my_styles.css";
 import './App.css';
 
 var API_base = (process.env.NODE_ENV === 'development') 
-    ? 'http://localhost:3001'
-    : 'http://localhost:3001';
+    ? process.env.REACT_APP_DEV_SERVER
+    : process.env.REACT_APP_PROD_SERVER;
 
 const customStyles = {
   content : {
@@ -48,7 +48,7 @@ class Lobby extends React.Component {
     })
     .then(res => res.json())
     .then(rooms => {
-      //console.log("Rooms: ", rooms);
+      console.log("Rooms: ", rooms);
       this.setState({ 
         rooms: rooms 
       })
