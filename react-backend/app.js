@@ -15,7 +15,7 @@ var app = express();
 
 app.use(cors({
   credentials: true, 
-  origin: ['http://soumatou.moe', 'www.soumatou.moe'],
+  origin: 'http://soumatou.moe',
   preflightContinue: true  
 }));
 
