@@ -6,11 +6,7 @@ var pgp = require('pg-promise')(/*options*/)
 var globalVals = require('./globalVals');
 var db = globalVals.dbInstance;
 
-router.all('*', cors({
-  credentials: true, 
-  origin: 'http://soumatou.moe',
-  preflightContinue: true  
-}));
+router.all('*', cors());
 
 router.get('/', function(req, res, next){
   db.any('SELECT name from characters')

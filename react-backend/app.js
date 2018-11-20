@@ -13,11 +13,7 @@ var charactersRouter = require('./routes/characters');
 
 var app = express();
 
-app.use(cors({
-  credentials: true, 
-  origin: 'http://soumatou.moe',
-  preflightContinue: true  
-}));
+app.use(cors());
 
 
 // view engine setup
