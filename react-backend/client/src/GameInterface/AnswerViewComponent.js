@@ -4,6 +4,7 @@ import CharacterSelectInput from '../UIComponents/CharacterSelectInput';
 import Modal from 'react-modal';
 import SubmittedDescriptionsList from './SubmittedDescriptionsList';
 import ImageCard from './ImageCard';
+import Spinner from '../UIComponents/Spinner';
 import '../css/my_styles.css';
 
 var API_base = (process.env.NODE_ENV === 'development') 
@@ -242,6 +243,10 @@ export default class AnswerViewComponent extends React.Component {
     const autoSuggestDivStyle = {
       'width': '35%'
     }
+
+    const textAlign ={
+      'textAlign': 'center'
+    }
     //console.log("render question ", this.state.question);
     //console.log("username: ", this.props.username);
 		return (
@@ -268,15 +273,18 @@ export default class AnswerViewComponent extends React.Component {
             { this.state.hasAnswered && (
               <div>
               { "Your guess for this round is " + this.state.submittedAnswer + ". " }
+                <Spinner message="Waiting on other players"/>
               </div> 
             )}
           </div>
         )}
         { this.state.question.owner === this.props.username && (
           <div>
+            <h5 style={textAlign}>You previously described this character</h5>
             <ImageCard src={this.state.charImgSrc} width="480px" length="400px"/>
             <SubmittedDescriptionsList descriptions={this.state.question.description} 
               textOverride="You described this character using these words:"/>
+            <Spinner message="Waiting on other players"/>
           </div>
         )}
         { this.state.error && (

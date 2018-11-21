@@ -225,7 +225,7 @@ export default class QuestionViewComponent extends React.Component{
 
 		return (
 			<div id="questionViewRoot" >
-        <h5 style={textAlign}>Describe this character to other players using only 3 words.</h5>
+        <h5 style={textAlign}>Describe this character to other players using no more than 3 words.</h5>
         { (Object.keys(this.state.character).length > 0) && 
           <CharacterProfileCard imgSrc={this.state.charImgSrc} character={this.state.character}
             restrictedWords={this.state.restrictedWords}/>
