@@ -297,7 +297,7 @@ function selectNextQuestion(roomInfo, sendToClients){
 
 router.all('*', cors({
   credentials: true, 
-  origin: 'http://www.soumatou.moe',
+  origin: '*',
   preflightContinue: true  
 }));
 

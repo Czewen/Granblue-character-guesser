@@ -42,6 +42,17 @@ class Lobby extends React.Component {
   }
 
   componentDidMount() {
+    var self = this;
+    $('#joinRoomModal').on('hidden.bs.modal', function(){
+      self.setState({
+        joinRoomId: ""
+      })
+    });
+
+    this.fetchRooms();
+  }
+
+  fetchRooms = () => {
     var endpoint = API_base + '/api/rooms';
     fetch( endpoint, {
       headers: {"Accept": "application/json"}
@@ -55,13 +66,6 @@ class Lobby extends React.Component {
     })
     .catch(error => {
       //console.log(error);
-    });
-
-    var self = this;
-    $('#joinRoomModal').on('hidden.bs.modal', function(){
-      self.setState({
-        joinRoomId: ""
-      })
     });
   }
 
@@ -120,7 +124,8 @@ class Lobby extends React.Component {
           data-target="#createRoomModal">Create room</button>
         <CreateRoomComponent/>
         <JoinRoomComponent joinRoomId={this.state.joinRoomId}/>
-        
+        <button type="button" className="btn btn-success btn_margin" onClick={this.fetchRooms}>
+          Refresh</button>
       </div>)
   }
 
