@@ -22,7 +22,7 @@ export default class GameRoomLobby extends React.Component {
 
     var roomIdStr = "Room ID: " + this.props.roomId;
     return (
-      <div class="row ">
+      <div className="row ">
         <div className="col">
           <h4>How to play:</h4>
           <p>Each round consists of a describe phase and a guess phase.</p>

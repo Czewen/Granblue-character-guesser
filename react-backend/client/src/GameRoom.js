@@ -12,6 +12,7 @@ import AnswerResults from './GameInterface/AnswerResults';
 import EndGameScreen from './GameInterface/EndGameScreen';
 import GameRoomLobby from './GameInterface/GameRoomLobby';
 import TimerModal from './TimerModal';
+import ErrorModal from './ErrorModal';
 import { withRouter } from "react-router";
 import $ from 'jquery';
 import "./css/my_styles.css";
@@ -103,15 +104,13 @@ class GameRoom extends React.Component {
   			answer: undefined,
   			submittedAnswers: [],
   			showAnswerResultsModal: false,
+        errorMessage: '',
 
         timerLock: false
   		};
 
       this.timerMaxDuration =  5.0;
 
-  		//console.log("Game room props: ", this.props);
-  		//console.log("Game room id: ", this.state.roomId);
-  		//console.log(this.location);
   		this.startGame = this.startGame.bind(this);
   		this.handleEvent = this.handleEvent.bind(this);
   		this.updateScores = this.updateScores.bind(this);
@@ -128,6 +127,19 @@ class GameRoom extends React.Component {
 	}
 
 	startGame(){
+
+    if(Object.keys(this.state.playerScores).length === 1){
+      var errMsg = "You need more than 1 player" 
+        + " in the room before you can start the game.";
+      this.setState({
+        errorMessage: errMsg
+      }, 
+      () => {
+        $('#errorModal').modal('show');
+      })
+      return;
+    }
+
 		var params = "?room_id=" + this.state.roomId + "&username=" + this.state.username;
 		axios.post(API_base + '/api/rooms/startGame' + params, {})
 		.then(function(response){
@@ -137,6 +149,12 @@ class GameRoom extends React.Component {
 
 		})
 	}
+
+  dismissErrorModal = () => {
+    this.setState({
+      errorMessage: ''
+    });
+  }
 
 	testUpdateScore(){
 		var params = "?username=" + this.state.username + "&room_id=" + this.state.roomId;
@@ -162,10 +180,6 @@ class GameRoom extends React.Component {
     var self =  this;
 
 		switch(eventData.eventType){
-			// case 'scores':
-			// 	//console.log('new scores: ', eventData.playerScores);
-			// 	this.updateScores(eventData.playerScores);
-			// 	break;
       case 'playerJoin':
         this.updateScores(eventData.playerScores);
         break;
@@ -218,35 +232,6 @@ class GameRoom extends React.Component {
 				break;
 
 			case 'startAnswerRound':
-				//console.log("answer round");
-        // var timeDiff = (Date.now() - eventData.roundStartTime)/1000;
-        // if(timeDiff < this.timerMaxDuration){
-        //   var seconds = Math.ceil(this.timerMaxDuration - timeDiff);
-        //   this.setState({
-        //     roundStartTime: eventData.roundStartTime,
-        //     gameState: "answer",
-        //     currRoomQuestionNum: 1,
-        //     playersReady: {}
-        //   }, () => {
-        //     $('#timerModal').modal('show');
-        //     this.timerModalRef.current.startCountDown(seconds);
-        //   });
-        //   var timeoutFunc = setTimeout(function(){
-        //     self.setState({
-        //       roundStartTime: undefined 
-        //     });
-        //     $('#timerModal').modal('hide');
-        //   }, seconds * 1000);
-        //   //console.log("timeoutFunc: ", timeoutFunc);
-        // }
-        // else{
-        //   this.setState({
-        //     gameState: "answer",
-        //     currRoomQuestionNum: 1,
-        //     playersReady: {},
-        //     roundStartTime: undefined 
-        //   });
-        // }
         this.setState({
           gameState: "answer",
           currRoomQuestionNum: 1,
@@ -414,6 +399,7 @@ class GameRoom extends React.Component {
     
 		this.syncRoomState();
     $('#resultsModal').on('hidden.bs.modal', this.hideModalFunction);
+    $('#errorModal').on('hidden.bs.modal', this.dismissErrorModal);
 	}
 
   hideModalFunction = (e) => {
@@ -544,7 +530,8 @@ class GameRoom extends React.Component {
         <TimerModal
           roundStartTime={this.state.roundStartTime}
           gameState={this.state.gameState}
-          ref={this.timerModalRef}/> 
+          ref={this.timerModalRef}/>
+        <ErrorModal errorMessage={this.state.errorMessage} /> 
 			</div>
 		);
 				
