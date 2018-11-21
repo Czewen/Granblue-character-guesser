@@ -4,6 +4,7 @@ import update from 'immutability-helper';
 import DescribeCharacterInput from '../UIComponents/DescribeCharacterInput';
 import CharacterProfileCard from './CharacterProfileCard';
 import SubmittedDescriptionsList from './SubmittedDescriptionsList';
+import Spinner from '../UIComponents/Spinner';
 import '../css/my_styles.css';
 
 var API_base = (process.env.NODE_ENV === 'development') 
@@ -248,7 +249,10 @@ export default class QuestionViewComponent extends React.Component{
             </div>
         )}
         { this.state.hasSubmittedDescription && (
-          <SubmittedDescriptionsList descriptions={this.state.descriptions}/>
+          <div>
+            <SubmittedDescriptionsList descriptions={this.state.descriptions}/>
+            <Spinner message="Waiting on other players"/>
+          </div>
         )}
 			</div>
 		)
