@@ -27,13 +27,26 @@ class CreateRoomComponent extends React.Component{
   componentDidMount(){
     var self = this;
     $('#createRoomModal').on('hidden.bs.modal', function(){
-      self.setState({
-        username: "",
-        maxCapacity: 2,
-        maxRounds: 1,
-        error: false,
-        errorMessage: ""
-      });
+      if(!self.state.navToRoom){
+        self.setState({
+          username: "",
+          maxCapacity: 2,
+          maxRounds: 1,
+          error: false,
+          errorMessage: ""
+        },
+        () => {
+          console.log("username: ", self.state.username);
+        });
+      }
+      else {
+        var path = '/room/' + self.state.roomId;
+        self.props.history.push({
+          pathname: path,
+          state: {username: self.state.username}
+        })
+      }
+      
     });
   }
 
@@ -65,11 +78,12 @@ class CreateRoomComponent extends React.Component{
       //console.log("response: ", response);
       var data = response.data;
       if(data.success == true){
-        var path = '/room/' + data.room_id;
-        $('#createRoomModal').modal('toggle');
-        self.props.history.push({
-          pathname: path,
-          state: {username: self.state.username}
+        self.setState({
+          roomId: data.room_id,
+          navToRoom: true
+        }, 
+        () => {
+          $('#createRoomModal').modal('toggle');
         })
       }      
     })
@@ -85,9 +99,7 @@ class CreateRoomComponent extends React.Component{
   onChangeCapacity(event){
     this.setState({
       maxCapacity: event.target.value
-    }, () => {
-      //console.log("capacity: ", this.state.maxCapacity);
-    })  
+    });  
   }
 
   onChangeUsername(event){
@@ -99,9 +111,7 @@ class CreateRoomComponent extends React.Component{
   onChangeRounds = (event) => {
     this.setState({
       maxRounds: event.target.value
-    }, () => {
-      //console.log("Number of rounds: ", this.state.maxRounds);
-    })
+    });
   }
 
 	render(){
@@ -130,7 +140,7 @@ class CreateRoomComponent extends React.Component{
                     <span className="input-group-text">Username:</span>
                   </div>
                   <input type="text" className="form-control" placeholder="Username" id="createRoomUsernameInput"
-                    aria-label="Username" value={this.state.value} onChange={this.onChangeUsername}/>
+                    aria-label="Username" value={this.state.username} onChange={this.onChangeUsername}/>
                 </div>
                 <div className="form-group">
                   <h6>

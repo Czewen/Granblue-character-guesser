@@ -52,12 +52,22 @@ class JoinRoomComponent extends React.Component {
   componentDidMount(){
     var self = this;
     $('#joinRoomModal').on('hidden.bs.modal', function(){
-      self.setState({
-        username: '',
-        roomIdInput: '',
-        error: false,
-        errorMessage: ''
-      });
+      if(self.state.joinRoom){
+        var path = '/room/' + self.state.roomIdInput;
+        self.props.history.push({
+          pathname: path,
+          state: {username: self.state.username}
+        })
+      }
+      else{
+        self.props.resetJoinRoomIdProp();
+        self.setState({
+          username: '',
+          roomIdInput: '',
+          error: false,
+          errorMessage: ''
+        });
+      }        
     });
   }
 
@@ -93,11 +103,11 @@ class JoinRoomComponent extends React.Component {
 		.then(function(response){
 			var data = response.data;
 			if(response.status === 200 && !response.data.error){
-				var path = '/room/' + self.state.roomIdInput;
-        $('#joinRoomModal').modal('toggle');
-        self.props.history.push({
-          pathname: path,
-          state: {username: self.state.username}
+        self.setState({
+          joinRoom: true,
+        }, 
+        () => {
+          $('#joinRoomModal').modal('toggle');
         })
 			}
       else{

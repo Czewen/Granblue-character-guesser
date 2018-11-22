@@ -43,13 +43,13 @@ class Lobby extends React.Component {
 
   componentDidMount() {
     var self = this;
-    $('#joinRoomModal').on('hidden.bs.modal', function(){
-      self.setState({
-        joinRoomId: ""
-      })
-    });
-
     this.fetchRooms();
+  }
+
+  resetJoinRoomIdProp = () => {
+    this.setState({
+      joinRoomId: ""
+    })
   }
 
   fetchRooms = () => {
@@ -127,7 +127,7 @@ class Lobby extends React.Component {
         <button type="button" className="btn btn-primary" data-toggle="modal"
           data-target="#createRoomModal">Create room</button>
         <CreateRoomComponent/>
-        <JoinRoomComponent joinRoomId={this.state.joinRoomId}/>
+        <JoinRoomComponent joinRoomId={this.state.joinRoomId} resetJoinRoomIdProp={this.resetJoinRoomIdProp}/>
         <button type="button" className="btn btn-success btn_margin" onClick={this.fetchRooms}>
           Refresh</button>
       </div>)
