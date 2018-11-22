@@ -211,7 +211,10 @@ class GameRoom extends React.Component {
             playersReady: {},
             roundTimeLeft: this.getTimeRemaining(eventData.roundStartTime)
           }, () => {
+            console.log("Finish calling setState startQuestionRound roundStartTime: ", this.state.roundStartTime);
+            console.log("startQuestionRound duration: ", seconds);
             if(!this.state.showAnswerResultsModal){
+              console.log("Show timer modal not from answer results");
               $('#timerModal').modal('show');
               this.timerModalRef.current.startCountdown(seconds);
             }
@@ -393,7 +396,7 @@ class GameRoom extends React.Component {
                self.timerCountdownRef.current.startCountdown(self.state.roundTimeLeft);
             }); 
             var timeoutFunc = setTimeout(function(){
-              //console.log("Hiding timer modal");
+              console.log("Hiding timer modal");
               $('#timerModal').modal('hide');
               self.setState({
                 roundStartTime: undefined
@@ -448,10 +451,13 @@ class GameRoom extends React.Component {
     }, 
     () => {
       if(this.state.roundStartTime && this.state.gameState === "question"){
+        console.log("hideModalFunction now(): ", Date.now());
         var timeDiff = (Date.now() - this.state.roundStartTime)/1000;
-        //console.log("Remaining time (seconds): ", timeDiff);
-        if(timeDiff > 1.0 && timeDiff < this.timerMaxDuration){
+
+        console.log(" Hidemodal function Remaining time (seconds): ", timeDiff);
+        if(timeDiff < this.timerMaxDuration - 1){
           var seconds = Math.ceil(this.timerMaxDuration - timeDiff);
+          console.log("answer results show timerModal seconds: ", seconds);
           $('#timerModal').modal('show');
           this.timerModalRef.current.startCountdown(seconds);
         }

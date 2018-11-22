@@ -27,7 +27,7 @@ export default class TimerCountdown extends React.Component {
     if(this.state.intervalFunc){
       clearInterval(this.state.intervalFunc);
     }
-    
+
     this.setState({
       remainingTime: duration
     }, 
@@ -50,6 +50,12 @@ export default class TimerCountdown extends React.Component {
         intervalFunc: intervalFunc 
       })
     });
+  }
+
+  componentWillUnmount(){
+    if(this.state.intervalFunc){
+      clearInterval(this.state.intervalFunc);
+    }
   }
 
   render() {
