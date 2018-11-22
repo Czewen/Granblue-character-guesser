@@ -52,7 +52,6 @@ export default class CharacterSelectInput extends React.Component {
 
 
 	getSuggestionValue = (suggestion) => {
-    console.log(this.props.onCharacterSelect);
     this.props.onCharacterSelect(suggestion.name);
   	return suggestion.name;
 	}

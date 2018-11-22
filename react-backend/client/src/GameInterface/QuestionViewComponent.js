@@ -4,6 +4,7 @@ import update from 'immutability-helper';
 import DescribeCharacterInput from '../UIComponents/DescribeCharacterInput';
 import CharacterProfileCard from './CharacterProfileCard';
 import SubmittedDescriptionsList from './SubmittedDescriptionsList';
+import Spinner from '../UIComponents/Spinner';
 import '../css/my_styles.css';
 
 var API_base = (process.env.NODE_ENV === 'development') 
@@ -129,6 +130,8 @@ export default class QuestionViewComponent extends React.Component{
 		});
 	};
 
+
+
 	submitDescriptions = () => {
 		//console.log("descriptions to submit: ", this.state.descriptions);
 		var body = {
@@ -224,7 +227,7 @@ export default class QuestionViewComponent extends React.Component{
 
 		return (
 			<div id="questionViewRoot" >
-        <h5 style={textAlign}>Describe this character to other players using only 3 words.</h5>
+        <h5 style={textAlign}>Describe this character to other players using no more than 3 words.</h5>
         { (Object.keys(this.state.character).length > 0) && 
           <CharacterProfileCard imgSrc={this.state.charImgSrc} character={this.state.character}
             restrictedWords={this.state.restrictedWords}/>
@@ -248,7 +251,10 @@ export default class QuestionViewComponent extends React.Component{
             </div>
         )}
         { this.state.hasSubmittedDescription && (
-          <SubmittedDescriptionsList descriptions={this.state.descriptions}/>
+          <div>
+            <SubmittedDescriptionsList descriptions={this.state.descriptions}/>
+            <Spinner message="Waiting on other players"/>
+          </div>
         )}
 			</div>
 		)

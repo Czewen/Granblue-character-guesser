@@ -27,6 +27,8 @@ db.one('SELECT COUNT(*) FROM characters')
 })
 
 var minutesInMs = 60 * 1000;
+var timePerRound = 2.5 * minutesInMs;
+// var timePerRound = 15 * 1000;
 var clearOldRooms = setInterval(deleteOldRooms, 5 * minutesInMs);
 /***********************************************************************/
 
@@ -123,8 +125,8 @@ function handleEvent(updateType, roomInfo){
 		case 'startAnswerRound':
 			roomInfo.gameState = "answer";
       roomInfo.firstAnswer = true;
-      roomInfo.roundStartTime = Date.now();
     case 'nextRoomQuestion':
+      roomInfo.roundStartTime = Date.now();
       var sendToClients =  function(){
         var dataObj = {
           eventType: updateType, 
@@ -141,6 +143,10 @@ function handleEvent(updateType, roomInfo){
 			if(roomInfo.currentRound <= roomInfo.maxRounds){
 				roomInfo.gameState = "question";
 				prepareQuestions(roomInfo, sendToClientsCallback);
+        roomInfo.timerFunc = setTimeout(function(){
+          roomInfo.hasSubmitted = {};
+          myEmitter.emit('event', 'startAnswerRound', roomInfo);
+        }, timePerRound);
 				return;
 			}
       else{
@@ -199,6 +205,10 @@ function handleEvent(updateType, roomInfo){
 function closeRoom(roomInfo){
 	var query = 'update rooms set closed=true WHERE id=$1';
   roomInfo.gameState = 'closed';
+  if(roomInfo.timerFunc){
+    clearTimeout(roomInfo.timerFunc);
+  }
+
 	db.none(query, roomInfo.id)
 	.then(() => {
 		// console.log("Closed room with id: ", roomInfo.id);
@@ -265,12 +275,20 @@ function selectNextQuestion(roomInfo, sendToClients){
 		db.one(query, nextQuestionId)
 		.then(result => {
       // console.log("select next question result:", result);
+      var description;
+      if(!result.description){
+        description ='';
+      }
+      else{
+        description = result.description;
+      }
+
 			roomInfo.currentQuestion = {
 				question: 
 				{
 					id: result.id,
 					owner: result.username,
-					description: result.description
+					description: description
 				},
 				character:
 				{
@@ -284,9 +302,12 @@ function selectNextQuestion(roomInfo, sendToClients){
 					restricted_words: result.restricted_words
 				}
 			};
-			// console.log("Next question: ", roomInfo.currentQuestion);
-   //    console.log("SendToClients function: ", sendToClients);
       sendToClients();
+
+      roomInfo.timerFunc = setTimeout(function(){
+        roomInfo.hasSubmitted = {};
+        myEmitter.emit('event', 'sendAnswers', roomInfo)
+      }, timePerRound);
 		})
 		.catch(error => {
 				//skip over this question if there was an error
@@ -316,6 +337,9 @@ router.get('/', function(req, res, next) {
 router.post('/create', function(req, res, next){
 	// console.log(req.body);
 	var body = req.body;
+  if(!body.owner){
+    return res.status(400).end();
+  }
 	var newRoomId = makeid();
 	var query = 'INSERT INTO ROOMS(id, curr_capacity, max_capacity, closed, started, owner, max_rounds)' 
 				+ 'VALUES($1, 1, $2, FALSE, FALSE, $3, $4)';	
@@ -323,7 +347,6 @@ router.post('/create', function(req, res, next){
 	.then(function(data){
 		// console.log("INSERT SUCCESS: " ,data);
 		// console.log("Creating room with id: ", newRoomId);
-		
 		var newRoom = new Room(newRoomId, body.owner);
 		rooms[newRoom.id] = newRoom;
 		newRoom.playerScores[body.owner] = 0;
@@ -342,7 +365,6 @@ router.post('/create', function(req, res, next){
 
 router.put('/join', function(req, res, next){
 	if(req.body == undefined || req.body.length == 0){
-		// console.log("Bad request 1");
 		return res.status(400).send('Bad Request');
 	}
 
@@ -488,9 +510,6 @@ router.get('/eventstream', function(req, res, next){
 
 	var roomInfo = rooms[req.query.room_id];
 	var username = req.query.username;
-	// console.log("In eventstream endpoint");
-	// console.log("register eventstream for room: ", req.query.room_id);
-	// console.log(req.query);
 	if(roomInfo != undefined){
 		res.writeHead(200, {
 	      'Connection': 'keep-alive',
@@ -499,9 +518,6 @@ router.get('/eventstream', function(req, res, next){
 	    });
 
 	    roomInfo.clients[username] = res;
-	    //console.log("Registered user in eventstream: ", username);
-	    var c = Object.keys(roomInfo.clients);
-	    //console.log("clients: ", c);
 	}
 })
 
@@ -564,6 +580,15 @@ router.post('/leave', function(req, res, next){
 
 	       	var clientNames = Object.keys(roomInfo.clients);
 	       	myEmitter.emit('event', 'playerJoin', roomInfo);
+          
+          if(Object.keys(roomInfo.playerScores).length === roomInfo.currentCapacity){
+            if(roomInfo.gameState === 'question'){
+              myEmitter.emit('event', 'startAnswerRound', roomInfo);
+            }
+            else if(roomInfo.gameState === 'answer'){
+              myEmitter.emit('event', 'sendAnswers', roomInfo);
+            }
+          }
 	       	return res.status(200).send('OK');
 		    })
 		    .catch(error => {
@@ -708,13 +733,12 @@ router.post('/submitDescription', function(req, res, next){
 		else{
 			res.status(200).json('OK');
 			roomInfo.hasSubmitted[username] = true;
-			// console.log("Submitted users: ", roomInfo.hasSubmitted);
-			// console.log("Submitted users length: ", Object.keys(roomInfo.hasSubmitted).length);
-			// console.log("Room capacity: ", roomInfo.currentCapacity);
 
 			if(Object.keys(roomInfo.hasSubmitted).length === roomInfo.currentCapacity){
-				// console.log("Everyone has submitted.");
 				roomInfo.hasSubmitted= {};
+        if(roomInfo.timerFunc){
+          clearTimeout(roomInfo.timerFunc);
+        }
 				myEmitter.emit('event', 'startAnswerRound', roomInfo);
 			}
       else{
@@ -723,7 +747,7 @@ router.post('/submitDescription', function(req, res, next){
 		}
 	})
 	.catch(function(error){
-			// console.log(error);
+			console.log(error);
 			res.status(500).end();
 	})
 })
@@ -734,7 +758,6 @@ router.post('/submitAnswer', function(req, res, next){
 		res.status(400).end();
 		return;
 	}
-	// console.log("submit Answer req body: ", req.body);
 	var roomInfo = rooms[req.body.room_id];
 	var questionId = req.body.question_id;
 	var answer = req.body.answer;
@@ -742,7 +765,6 @@ router.post('/submitAnswer', function(req, res, next){
 
 	if(roomInfo === undefined){
 		var msg = "Room with id " + req.body.room_id + " doesnt exist";
-		// console.log(msg);
 		return res.status(200).json({'error': true, 'exists': false});
 	}
 
@@ -753,10 +775,7 @@ router.post('/submitAnswer', function(req, res, next){
 	if(roomInfo.hasSubmitted[username] != undefined){
 		return res.status(200).json({'error': true, 'repost': true});
 	}
-	// else if(questionId != roomInfo.currentQuestion.id){
-	// 	var msg = 'Question with ID: ' + questionId + ' has already expired.';
-	// 	res.status(200).json({'sucess': false, "message": msg});
-	// }
+
 	var currentQuestion = roomInfo.currentQuestion;
 	roomInfo.hasSubmitted[username] = {
 		answer: answer,
@@ -764,13 +783,16 @@ router.post('/submitAnswer', function(req, res, next){
 	};
 
 	if(currentQuestion.character.name.toLowerCase() === answer.toLowerCase().trim()){
-		roomInfo.playerScores[username]+=1000;
+		roomInfo.playerScores[username]+=1;
 		roomInfo.hasSubmitted[username].correct = true;
-		roomInfo.playerScores[currentQuestion.question.owner]+=1500;
+		roomInfo.playerScores[currentQuestion.question.owner]+=2;
 	}
 
 	res.status(200).send('OK');
 	if(Object.keys(roomInfo.hasSubmitted).length === (roomInfo.currentCapacity -1)){
+    if(roomInfo.timerFunc){
+      clearTimeout(roomInfo.timerFunc);
+    }
 		myEmitter.emit('event', 'sendAnswers', roomInfo);
 	}
   else{

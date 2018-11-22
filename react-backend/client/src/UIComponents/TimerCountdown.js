@@ -1,18 +1,33 @@
 import React from 'react';
 import $ from 'jquery';
 
-export default class TimerModal extends React.Component {
-  constructor(props){
+export default class TimerCountdown extends React.Component {
+    constructor(props){
     super(props);
     this.state = {
       remainingTime: 0,
       intervalFunc: undefined
     };
+  }
 
+  resetCountdown = () => {
+    if(this.state.intervalFunc){
+      clearInterval(this.state.intervalFunc);
+    }
+    if(this.state.remainingTime > 0){
+      this.setState({
+        remainingTime: 0
+      });
+    }     
   }
 
   startCountdown = (duration) => {
     var self = this;
+
+    if(this.state.intervalFunc){
+      clearInterval(this.state.intervalFunc);
+    }
+    
     this.setState({
       remainingTime: duration
     }, 
@@ -37,28 +52,19 @@ export default class TimerModal extends React.Component {
     });
   }
 
-  render(){
+  render() {
 
     const textCenter = {
-      textAlign: "center"
-    };
-    var text = this.state.remainingTime.toString() + " seconds";
+      'textAlign': 'center'
+    }
 
-    return (<div className="modal fade" id="timerModal" 
-        data-backdrop="static" data-keyboard="false">
-      <div className="modal-dialog">
-        <div className="modal-content">
-          <div className="modal-header" style={textCenter}>
-            Next round begins in:
-          </div>
-
-          <div className="alert alert-info">
-            <h3 style={textCenter}>Time remaining:</h3>
-            <h3 style={textCenter}>{text}</h3>
-          </div>
-        </div>
+    // var text = this.state.remainingTime.toString() + " seconds";
+    
+    return (  
+      <div className="alert alert-info">
+        <h3 style={textCenter}>Time remaining:</h3>
+        <h3 style={textCenter}>{this.state.remainingTime}</h3>
       </div>
-
-    </div>);
+    );
   }
 }

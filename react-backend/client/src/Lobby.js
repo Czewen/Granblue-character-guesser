@@ -79,6 +79,10 @@ class Lobby extends React.Component {
          //console.log("It was in this row:", rowInfo);
         // //console.log("It was in this table instance:", instance);
         //console.log(rowInfo.row.id);
+        if(!rowInfo){
+          return;
+        }
+
         self.setState({
           joinRoomId: rowInfo.row.id
         },
