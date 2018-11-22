@@ -5,6 +5,7 @@ import "react-table/react-table.css";
 import Modal from 'react-modal';
 import update from 'immutability-helper'
 import { Redirect } from 'react-router';
+import TimerCountdown from './UIComponents/TimerCountdown';
 import QuestionViewComponent from './GameInterface/QuestionViewComponent';
 import AnswerViewComponent from './GameInterface/AnswerViewComponent';
 import ScoreBoardComponent from './GameInterface/ScoreBoardComponent';
@@ -109,7 +110,11 @@ class GameRoom extends React.Component {
         timerLock: false
   		};
 
-      this.timerMaxDuration =  5.0;
+      this.timerMaxDuration =  10.0;
+
+      // 2.5 minutes in MS
+      this.roundTimeInMS = 2.5 * 60 * 1000;
+      // this.roundTimeInMS = 15 * 1000;
 
   		this.startGame = this.startGame.bind(this);
   		this.handleEvent = this.handleEvent.bind(this);
@@ -123,6 +128,7 @@ class GameRoom extends React.Component {
 
   		this.answerViewRef = React.createRef();
       this.timerModalRef = React.createRef();
+      this.timerCountdownRef = React.createRef();
     }
 	}
 
@@ -202,12 +208,14 @@ class GameRoom extends React.Component {
             gameState: "question",
             currRoomQuestionNum: 0, 
             currentRound: eventData.currentRound,
-            playersReady: {}
+            playersReady: {},
+            roundTimeLeft: this.getTimeRemaining(eventData.roundStartTime)
           }, () => {
             if(!this.state.showAnswerResultsModal){
               $('#timerModal').modal('show');
-              this.timerModalRef.current.startCountDown(seconds);
+              this.timerModalRef.current.startCountdown(seconds);
             }
+            this.timerCountdownRef.current.startCountdown(this.state.roundTimeLeft);
           });
 
           var timeoutFunc = setTimeout(function(){
@@ -226,7 +234,11 @@ class GameRoom extends React.Component {
             currRoomQuestionNum: 0, 
             currentRound: eventData.currentRound,
             playersReady: {},
-            roundStartTime: undefined
+            roundStartTime: undefined,
+            roundTimeLeft: this.getTimeRemaining(eventData.roundStartTime)
+          }, 
+          () => {
+            this.timerCountdownRef.current.startCountdown(this.state.roundTimeLeft);
           });
         }
 				break;
@@ -236,14 +248,22 @@ class GameRoom extends React.Component {
           gameState: "answer",
           currRoomQuestionNum: 1,
           playersReady: {},
-          roundStartTime: undefined 
+          roundStartTime: eventData.roundStartTime, 
+          roundTimeLeft: this.getTimeRemaining(eventData.roundStartTime)
+        },
+        () => {
+          this.timerCountdownRef.current.startCountdown(this.state.roundTimeLeft);
         });
 				break;
 
       case 'nextRoomQuestion':
         this.setState({
           currRoomQuestionNum: this.state.currRoomQuestionNum + 1,
-          playersReady: {},
+          roundTimeLeft: this.getTimeRemaining(eventData.roundStartTime),
+          playersReady: {}
+        }, 
+        () => {
+          this.timerCountdownRef.current.startCountdown(this.state.roundTimeLeft);
         });
         break;
 
@@ -279,6 +299,19 @@ class GameRoom extends React.Component {
 				//console.log("Received unknown event: ", eventData.eventType);
 		}
 	}
+
+  getTimeRemaining = (startTime) => {
+    var endTime = startTime + this.roundTimeInMS;
+    var now = Date.now();
+
+    // timeDiff calculated in seconds
+    var timeDiff = Math.floor((endTime - now)/1000);
+    if(timeDiff <= 0){
+      return 0;
+    }
+
+    return timeDiff;
+  }
 
 	updateScores(newScores){
 		this.setState({
@@ -317,17 +350,13 @@ class GameRoom extends React.Component {
 	}
 
   syncRoomState = () => {
-    let self = this;
+    var self = this;
     var params = "?username=" + this.state.username + "&room_id=" + this.state.roomId;
-    //console.log("GET from: ", API_base + '/api/rooms/room' + params);
     axios.get(API_base + '/api/rooms/room' + params, {})
     .then(function(response){
-      //console.log("response.data: ", response.data);
-      //just for testing purposes for now
 
       var data = response.data;
       var gameStarted = data.gameState === "lobby" ? false : true;
-      //console.log("syncRoomState response: ", response);
       if(response.status === 200 ){
 
         if(response.data.roomClosed){
@@ -347,9 +376,8 @@ class GameRoom extends React.Component {
 
         if(data.roundStartTime && gameStarted === "question" ){
           var timeDiff = (Date.now() - data.roundStartTime)/1000;
-          //console.log("syncRoomState timeDiff: ", timeDiff);
-          if(timeDiff < this.timerMaxDuration){
-            var seconds = Math.ceil(this.timerMaxDuration - timeDiff);
+          if(timeDiff < self.timerMaxDuration){
+            var seconds = Math.ceil(self.timerMaxDuration - timeDiff);
             self.setState({
               roundStartTime: data.roundStartTime,
               owner: data.owner,
@@ -357,10 +385,12 @@ class GameRoom extends React.Component {
               gameStarted: gameStarted,
               playerScores: data.playerScores,
               currentRound: data.currentRound,
-              maxCapacity: data.maxCapacity
+              maxCapacity: data.maxCapacity,
+              roundTimeLeft: self.getTimeRemaining(data.roundStartTime)
             }, () => {
                $('#timerModal').modal('show');
-               self.timerModalRef.current.startCountDown(seconds);
+               self.timerModalRef.current.startCountdown(seconds);
+               self.timerCountdownRef.current.startCountdown(self.state.roundTimeLeft);
             }); 
             var timeoutFunc = setTimeout(function(){
               //console.log("Hiding timer modal");
@@ -374,6 +404,8 @@ class GameRoom extends React.Component {
           }      
         }
         else{
+          var roundTimeLeft = (data.roundStartTime === undefined) ? 
+            0 : self.getTimeRemaining(data.roundStartTime);
           self.setState({
             owner: data.owner,
             gameState:data.gameState,
@@ -381,13 +413,19 @@ class GameRoom extends React.Component {
             playerScores: data.playerScores,
             currentRound: data.currentRound,
             maxCapacity: data.maxCapacity,
-            roundStartTime: undefined
+            roundStartTime: undefined,
+            roundTimeLeft: roundTimeLeft
+          },
+          () => {
+            if(self.state.gameState != 'lobby'){
+              self.timerCountdownRef.current.startCountdown(self.state.roundTimeLeft);
+            }
           }); 
         }
       }     
     })
     .catch(function(error){
-      //console.log(error);
+      console.log(error);
     })
   }
 
@@ -415,7 +453,7 @@ class GameRoom extends React.Component {
         if(timeDiff > 1.0 && timeDiff < this.timerMaxDuration){
           var seconds = Math.ceil(this.timerMaxDuration - timeDiff);
           $('#timerModal').modal('show');
-          this.timerModalRef.current.startCountDown(seconds);
+          this.timerModalRef.current.startCountdown(seconds);
         }
       }
     });
@@ -510,7 +548,10 @@ class GameRoom extends React.Component {
             <div className="col">
               <div style={halfWidth}>
                 {this.state.gameStarted && (
-                  <ScoreBoardComponent playersReady={this.state.playersReady} scores={this.state.playerScores}/>
+                  <div>
+                    <ScoreBoardComponent playersReady={this.state.playersReady} scores={this.state.playerScores}/>
+                    <TimerCountdown ref={this.timerCountdownRef}/>
+                  </div>
                 )}
               </div>
             </div>
@@ -527,10 +568,7 @@ class GameRoom extends React.Component {
         <AnswerResults 
           character={this.state.answer}
           submittedAnswers={this.state.submittedAnswers}/> 
-        <TimerModal
-          roundStartTime={this.state.roundStartTime}
-          gameState={this.state.gameState}
-          ref={this.timerModalRef}/>
+        <TimerModal ref={this.timerModalRef}/>
         <ErrorModal errorMessage={this.state.errorMessage} /> 
 			</div>
 		);

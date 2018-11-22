@@ -17,7 +17,7 @@ function ImageModal(props){
   return (
     <div className="modal" role="img" id="imageModal" tabIndex="-1">
       <div className="modal-dialog">
-        <img src={props.src} className="fullOpacity" onerror={props.placeholder}/>
+        <img src={props.src} className="fullOpacity"/>
       </div>
     </div>
   );

@@ -130,6 +130,8 @@ export default class QuestionViewComponent extends React.Component{
 		});
 	};
 
+
+
 	submitDescriptions = () => {
 		//console.log("descriptions to submit: ", this.state.descriptions);
 		var body = {

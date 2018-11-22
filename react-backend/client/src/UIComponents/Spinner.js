@@ -14,13 +14,13 @@ export default class Spinner extends React.Component {
           <div className="inline spinner-text">
             <strong>{this.props.message}</strong>
           </div>
-          <div class="inline lds-ring"><div></div><div></div><div></div></div>
+          <div className="inline lds-ring"><div></div><div></div><div></div></div>
         </div>
       );
     }
     else{
       return (
-        <div class="lds-ring"><div></div><div></div><div></div></div>
+        <div className="lds-ring"><div></div><div></div><div></div></div>
       );
     }
   };
