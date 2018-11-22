@@ -33,7 +33,9 @@ export default class DescribeCharacterInput extends React.Component{
   }
 
 	onChange = (event) => {
-    var numDescriptions = event.target.value.split(" ").length + this.state.descriptors.length;
+    var words = event.target.value.trim().split(" ");
+    var numWords = (words[0] === '') ? words.length - 1 : words.length;
+    var numDescriptions = numWords + this.state.descriptors.length;
 
     this.setState({
      	inputVal: event.target.value
@@ -53,7 +55,7 @@ export default class DescribeCharacterInput extends React.Component{
   	if(event.key === 'Enter'){
   		var newArr = this.state.descriptors.slice(0, this.state.descriptors.length);
 
-      var values = this.state.inputVal.split(" ");
+      var values = this.state.inputVal.trim().split(" ");
       var numDescriptions = values.length + newArr.length;
 
       if(numDescriptions > 3){
@@ -75,8 +77,11 @@ export default class DescribeCharacterInput extends React.Component{
   };
 
   setDescriptions = () => {
-    var newDescriptions = this.state.inputVal.split(" ");
-    
+    var newDescriptions = this.state.inputVal.trim().split(" ");
+    if(newDescriptions[0] === ''){
+      return;
+    }
+
     var numDescriptions = newDescriptions.length + this.state.descriptors.length;
     if(numDescriptions > 3){
       return;
