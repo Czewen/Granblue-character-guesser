@@ -2,7 +2,7 @@ import React from 'react';
 import { withRouter as Router, Route, Link } from "react-router-dom";
 import ReactTable from 'react-table';
 import "react-table/react-table.css";
-
+import InstructionsModal from './InstructionsModal';
 import JoinRoomComponent from './JoinRoomComponent';
 import CreateRoomComponent from './CreateRoomComponent';
 import $ from 'jquery';
@@ -130,6 +130,9 @@ class Lobby extends React.Component {
         <JoinRoomComponent joinRoomId={this.state.joinRoomId} resetJoinRoomIdProp={this.resetJoinRoomIdProp}/>
         <button type="button" className="btn btn-success btn_margin" onClick={this.fetchRooms}>
           Refresh</button>
+        <button type="button" className="btn btn-info btn_margin" 
+          data-toggle="modal" data-target="#instructionsModal">Instructions</button>
+        <InstructionsModal/>
       </div>)
   }
 

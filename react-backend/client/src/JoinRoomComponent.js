@@ -162,7 +162,7 @@ class JoinRoomComponent extends React.Component {
           <div className="modal-content">
             <div className="modal-header">
               <h5 className="modal-title">Join a room</h5>
-              <a type="button" className="close" data-dismiss="modal" aria-label="Close">
+              <a className="close" data-dismiss="modal" aria-label="Close">
                 <span aria-hidden="true">&times;</span>
               </a>
             </div>

@@ -3,6 +3,7 @@ import $ from 'jquery';
 import './css/homepage.css';
 import CreateRoomComponent from './CreateRoomComponent';
 import JoinRoomComponent from './JoinRoomComponent';
+import InstructionsModal from './InstructionsModal';
 
 export default class Home extends React.Component {
   constructor(props){
@@ -40,10 +41,16 @@ export default class Home extends React.Component {
                 data-target="#joinRoomModal">
               Join room
             </li>
+
+            <li id="homeCardListItem" className="list-group-item" data-toggle="modal"
+                data-target="#instructionsModal">
+              How to play
+            </li>
           </ul>
         </div>
         <CreateRoomComponent/>
         <JoinRoomComponent/>
+        <InstructionsModal/>
       </div>
     );
   }

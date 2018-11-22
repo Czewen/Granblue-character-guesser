@@ -25,9 +25,9 @@ export default class GameRoomLobby extends React.Component {
       <div className="row ">
         <div className="col">
           <h4>How to play:</h4>
-          <p>Each round consists of a describe phase and a guess phase.</p>
-          <p>During the describe phase, describe a Granblue Fantasy character using 3 words or less.</p>
-          <p>Durign the guessing phase, players can guess a character based on descriptions given.</p>
+          <p>Each round consists of a describe phase and multiple guessing phase.</p>
+          <p>During the describe phase, describe a Granblue Fantasy character using 3 words or less before time runs out.</p>
+          <p>Durign the guessing phase, players can guess a character based on descriptions given before time runs out.</p>
           <p>1 point is awarded to the guesser and describer for each correct guess that is made.</p>
         </div>
         <div className="col">

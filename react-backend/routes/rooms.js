@@ -785,7 +785,7 @@ router.post('/submitAnswer', function(req, res, next){
 	if(currentQuestion.character.name.toLowerCase() === answer.toLowerCase().trim()){
 		roomInfo.playerScores[username]+=1;
 		roomInfo.hasSubmitted[username].correct = true;
-		roomInfo.playerScores[currentQuestion.question.owner]+=2;
+		roomInfo.playerScores[currentQuestion.question.owner]+=1;
 	}
 
 	res.status(200).send('OK');
