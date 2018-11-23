@@ -27,13 +27,19 @@ db.one('SELECT COUNT(*) FROM characters')
 })
 
 var minutesInMs = 60 * 1000;
+var timePerDescribe = 75 * 1000;
+var timePerGuess = 30 * 1000;
 var timePerRound = 2.5 * minutesInMs;
 // var timePerRound = 15 * 1000;
 var clearOldRooms = setInterval(deleteOldRooms, 5 * minutesInMs);
 /***********************************************************************/
 
-function getRandomCharacterId(){
-  return Math.floor(Math.random() * Math.floor(numCharacters)) + 1;
+function getRandomCharacterId(charactersShown){
+  var randId = Math.floor(Math.random() * Math.floor(numCharacters)) + 1;
+  while(charactersShown[randId]){
+    randId = Math.floor(Math.random() * Math.floor(numCharacters)) + 1
+  }
+  return randId;
 }
 
 function makeid() {
@@ -89,6 +95,7 @@ function Room(id, owner){
 	this.maxRounds = 4;
 	this.gameState = "lobby";
 	this.questionIds = [];
+  this.charactersShown = {};
 	this.currentQuestion = {};
 }
 
@@ -100,7 +107,6 @@ function handleEvent(updateType, roomInfo){
 
 	var sendToClientsCallback = function(dataObj){
 		for(let name of clientNames){
-			// console.log("Sending event to: ", name);
 			var clientRes = clients[name];
 			var content = 'data: ' + JSON.stringify(dataObj);
 			clientRes.write(content + "\n\n");
@@ -146,7 +152,7 @@ function handleEvent(updateType, roomInfo){
         roomInfo.timerFunc = setTimeout(function(){
           roomInfo.hasSubmitted = {};
           myEmitter.emit('event', 'startAnswerRound', roomInfo);
-        }, timePerRound);
+        }, timePerDescribe);
 				return;
 			}
       else{
@@ -224,7 +230,8 @@ function prepareQuestions(roomInfo, callback){
 	var users = Object.keys(roomInfo.playerScores);
 	for(user of users){
 		
-		var characterId = getRandomCharacterId();
+		var characterId = getRandomCharacterId(roomInfo.charactersShown);
+    roomInfo.charactersShown[characterId] = true;
 		questions.push({"roomid": roomInfo.id, "username": user,"character_id": characterId, "round": roomInfo.currentRound});
 	}
 	// console.log("Questions generated: ", questions);
@@ -252,7 +259,10 @@ function createQuestion(roomId, round, username){
 	var query = 'INSERT INTO QUESTIONS(roomId, username, character_id, round)'
 				+ 'VALUES($1, $2, $3) RETURNING id';
 	//for testing purposes, character_id = 1 (will be randomized in the future)
-	var characterId = getRandomCharacterId();
+
+  var roomInfo = rooms[roomId];
+	var characterId = getRandomCharacterId(roomInfo.charactersShown);
+  roomInfo.charactersShown[characterId] = true;
 
 	db.result(query, [roomId, username, characterId, round])
 		.then(result => {
@@ -307,7 +317,7 @@ function selectNextQuestion(roomInfo, sendToClients){
       roomInfo.timerFunc = setTimeout(function(){
         roomInfo.hasSubmitted = {};
         myEmitter.emit('event', 'sendAnswers', roomInfo)
-      }, timePerRound);
+      }, timePerGuess);
 		})
 		.catch(error => {
 				//skip over this question if there was an error
@@ -788,7 +798,7 @@ router.post('/submitAnswer', function(req, res, next){
 		roomInfo.playerScores[currentQuestion.question.owner]+=1;
 	}
 
-	res.status(200).send('OK');
+	res.status(200).json('OK');
 	if(Object.keys(roomInfo.hasSubmitted).length === (roomInfo.currentCapacity -1)){
     if(roomInfo.timerFunc){
       clearTimeout(roomInfo.timerFunc);
@@ -796,7 +806,8 @@ router.post('/submitAnswer', function(req, res, next){
 		myEmitter.emit('event', 'sendAnswers', roomInfo);
 	}
   else{
-    myEmitter.emit('event', playerReady, roomInfo);
+    console.log("Send playerReady from submitAnswer");
+    myEmitter.emit('event', 'playerReady', roomInfo);
   }
 
 })

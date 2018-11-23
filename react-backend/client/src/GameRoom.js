@@ -113,7 +113,9 @@ class GameRoom extends React.Component {
       this.timerMaxDuration =  10.0;
 
       // 2.5 minutes in MS
-      this.roundTimeInMS = 2.5 * 60 * 1000;
+      //this.roundTimeInMS = 2.5 * 60 * 1000;
+      this.timePerDescribe = 75 * 1000;
+      this.timePerGuess = 30 * 1000;
       // this.roundTimeInMS = 15 * 1000;
 
   		this.startGame = this.startGame.bind(this);
@@ -209,7 +211,7 @@ class GameRoom extends React.Component {
             currRoomQuestionNum: 0, 
             currentRound: eventData.currentRound,
             playersReady: {},
-            roundTimeLeft: this.getTimeRemaining(eventData.roundStartTime)
+            roundTimeLeft: this.getTimeRemaining(eventData.roundStartTime, this.timePerDescribe)
           }, () => {
             // console.log("Finish calling setState startQuestionRound roundStartTime: ", this.state.roundStartTime);
             // console.log("startQuestionRound duration: ", seconds);
@@ -238,7 +240,7 @@ class GameRoom extends React.Component {
             currentRound: eventData.currentRound,
             playersReady: {},
             roundStartTime: undefined,
-            roundTimeLeft: this.getTimeRemaining(eventData.roundStartTime)
+            roundTimeLeft: this.getTimeRemaining(eventData.roundStartTime, this.timePerDescribe)
           }, 
           () => {
             this.timerCountdownRef.current.startCountdown(this.state.roundTimeLeft);
@@ -252,7 +254,7 @@ class GameRoom extends React.Component {
           currRoomQuestionNum: 1,
           playersReady: {},
           roundStartTime: eventData.roundStartTime, 
-          roundTimeLeft: this.getTimeRemaining(eventData.roundStartTime)
+          roundTimeLeft: this.getTimeRemaining(eventData.roundStartTime, this.timePerGuess)
         },
         () => {
           this.timerCountdownRef.current.startCountdown(this.state.roundTimeLeft);
@@ -262,7 +264,7 @@ class GameRoom extends React.Component {
       case 'nextRoomQuestion':
         this.setState({
           currRoomQuestionNum: this.state.currRoomQuestionNum + 1,
-          roundTimeLeft: this.getTimeRemaining(eventData.roundStartTime),
+          roundTimeLeft: this.getTimeRemaining(eventData.roundStartTime, this.timePerGuess),
           playersReady: {}
         }, 
         () => {
@@ -271,6 +273,7 @@ class GameRoom extends React.Component {
         break;
 
       case 'playerReady':
+        console.log("playerReady");
         var playersReady = {}
         for(var player of eventData.players){
           playersReady[player] = true;
@@ -303,8 +306,8 @@ class GameRoom extends React.Component {
 		}
 	}
 
-  getTimeRemaining = (startTime) => {
-    var endTime = startTime + this.roundTimeInMS;
+  getTimeRemaining = (startTime, currentPhaseTime) => {
+    var endTime = startTime + currentPhaseTime;
     var now = Date.now();
 
     // timeDiff calculated in seconds
@@ -389,7 +392,7 @@ class GameRoom extends React.Component {
               playerScores: data.playerScores,
               currentRound: data.currentRound,
               maxCapacity: data.maxCapacity,
-              roundTimeLeft: self.getTimeRemaining(data.roundStartTime)
+              roundTimeLeft: self.getTimeRemaining(data.roundStartTime, self.timePerDescribe)
             }, () => {
                $('#timerModal').modal('show');
                self.timerModalRef.current.startCountdown(seconds);
@@ -407,8 +410,13 @@ class GameRoom extends React.Component {
           }      
         }
         else{
-          var roundTimeLeft = (data.roundStartTime === undefined) ? 
-            0 : self.getTimeRemaining(data.roundStartTime);
+          var roundTimeLeft = 0;
+          if(data.gameState != 'lobby'){
+            var timeLeft = (data.gameState === 'question') ? 
+              self.timePerDescribe : self.timePerGuess;
+              roundTimeLeft = self.getTimeRemaining(data.roundStartTime, timeLeft);
+          }
+          
           self.setState({
             owner: data.owner,
             gameState:data.gameState,
@@ -420,7 +428,7 @@ class GameRoom extends React.Component {
             roundTimeLeft: roundTimeLeft
           },
           () => {
-            if(self.state.gameState != 'lobby'){
+            if(self.state.gameState != 'lobby'){             
               self.timerCountdownRef.current.startCountdown(self.state.roundTimeLeft);
             }
           }); 
