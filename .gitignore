@@ -3,3 +3,5 @@
 
 # ignore environment files
 *.env
+.env
+node_modules/

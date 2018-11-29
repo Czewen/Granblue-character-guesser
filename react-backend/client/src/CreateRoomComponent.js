@@ -11,12 +11,24 @@ var API_base = (process.env.NODE_ENV === 'development')
 class CreateRoomComponent extends React.Component{
 	constructor(props){
 		super(props);
+    let capacityOptions = [];
+    let maxRoundOptions = [];
+    for(let i=2; i <= process.env.REACT_APP_ROOM_MAX_CAPACITY; i++){
+      capacityOptions.push(i);
+    }
+
+    for(let i=1; i <= process.env.REACT_APP_ROOM_MAX_ROUNDS; i++){
+      maxRoundOptions.push(i);
+    }
+
 		this.state = {
       username: "",
 			maxCapacity: 2,
       maxRounds: 1,
       error: false,
-      errorMessage: ""
+      errorMessage: "",
+      capacityOptions: capacityOptions,
+      maxRoundOptions: maxRoundOptions
 		}
 
     this.onChangeCapacity = this.onChangeCapacity.bind(this);
@@ -148,9 +160,13 @@ class CreateRoomComponent extends React.Component{
                   </h6>
                   <select className="form-control" id="roomCapacitySelect"
                     onChange={this.onChangeCapacity}>
-                    <option value="2" >2</option>
-                    <option value="3" >3</option>
-                    <option value="4" >4</option>
+                    {
+                      this.state.capacityOptions.map(function(item, i){
+                        return (
+                          <option key={i} value={item}>{item}</option>
+                        );
+                      })
+                    }
                   </select>
                 </div>
                 <div className="form-group">
@@ -159,10 +175,13 @@ class CreateRoomComponent extends React.Component{
                   </h6>
                   <select className="form-control" id="roomRoundsSelect"
                     onChange={this.onChangeRounds}>
-                    <option value="1" >1</option>
-                    <option value="2" >2</option>
-                    <option value="3" >3</option>
-                    <option value="4" >4</option>
+                    {
+                      this.state.maxRoundOptions.map(function(item, i){
+                        return (
+                          <option key={i} value={item}>{item}</option>
+                        );
+                      })
+                    }
                   </select>
                   { this.state.error && (
                     <div className="alert alert-danger" role="alert" style={marginTop}>{this.state.errorMessage}</div>
