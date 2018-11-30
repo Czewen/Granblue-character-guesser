@@ -46,9 +46,6 @@ class CreateRoomComponent extends React.Component{
           maxRounds: 1,
           error: false,
           errorMessage: ""
-        },
-        () => {
-          console.log("username: ", self.state.username);
         });
       }
       else {
@@ -64,7 +61,6 @@ class CreateRoomComponent extends React.Component{
 
   createRoom(){
     let self = this;
-
     if(!this.state.username || this.state.username === ""){
       this.setState({
         error: true, 

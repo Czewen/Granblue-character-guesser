@@ -18,7 +18,6 @@ import { withRouter } from "react-router";
 import $ from 'jquery';
 import "./css/my_styles.css";
 
-var hideModalCounter = 0;
 
 var API_base = (process.env.NODE_ENV === 'development') 
     ? process.env.REACT_APP_DEV_SERVER
@@ -193,8 +192,7 @@ class GameRoom extends React.Component {
         break;
 
 			case 'disconnect':
-				//console.log('host disconnected');
-				this.setState({disconnect: true});
+				this.returnToLobby();
 				break;
 
 			case 'startQuestionRound':
@@ -223,8 +221,8 @@ class GameRoom extends React.Component {
             this.timerCountdownRef.current.startCountdown(this.state.roundTimeLeft);
           });
 
-          var timeoutFunc = setTimeout(function(){
-            ////console.log("Start new question round: hiding modal");
+          this.timeoutFunc = setTimeout(function(){
+            delete this.timeoutFunc;
             $('#timerModal').modal('hide');
             self.setState({
               roundStartTime: undefined
@@ -273,7 +271,6 @@ class GameRoom extends React.Component {
         break;
 
       case 'playerReady':
-        console.log("playerReady");
         var playersReady = {}
         for(var player of eventData.players){
           playersReady[player] = true;
@@ -350,9 +347,43 @@ class GameRoom extends React.Component {
 
 	returnToLobby = () => {
 		this.eventSource.close();
-		this.setState({
-      disconnect: true
-    })
+
+    if(this.timeoutFunc){
+      clearTimeout(this.timeoutFunc);
+      delete this.timeoutFunc;
+    }
+
+    var self = this;
+    let targetModal;
+    let resultsModalOpen = ($("#resultsModal").data('bs.modal') || {})._isShown;
+    let timerModalOpen = ($("#timerModal").data('bs.modal') || {})._isShown;
+    let errorModalOpen = ($("#errorModal").data('bs.modal') || {})._isShown
+
+    if(resultsModalOpen){
+      targetModal = $('#resultsModal');
+    }
+    else {
+      if(timerModalOpen){
+        targetModal = $('#timerModal');
+      }
+      else if(this.state.errorMessage){
+        targetModal = $('#errorModal');
+      }
+      else{
+        this.setState({
+          disconnect: true
+        });
+      }
+    }
+		
+    if(targetModal){
+      targetModal.on('hidden.bs.modal', function(){
+        self.setState({
+          disconnect: true
+        });
+      });
+      targetModal.modal('hide');
+    }
 	}
 
   syncRoomState = () => {
@@ -398,8 +429,9 @@ class GameRoom extends React.Component {
                self.timerModalRef.current.startCountdown(seconds);
                self.timerCountdownRef.current.startCountdown(self.state.roundTimeLeft);
             }); 
-            var timeoutFunc = setTimeout(function(){
+            this.timeoutFunc = setTimeout(function(){
               // console.log("Hiding timer modal");
+              delete this.timeoutFunc;
               $('#timerModal').modal('hide');
               self.setState({
                 roundStartTime: undefined
@@ -452,8 +484,6 @@ class GameRoom extends React.Component {
 	}
 
   hideModalFunction = (e) => {
-    hideModalCounter++;
-    //console.log("Called hidemodalfunction: ", hideModalCounter);
     this.setState({
       showAnswerResultsModal: false
     }, 
@@ -491,8 +521,9 @@ class GameRoom extends React.Component {
   }
 
   componentWillUnmount(){
-    if(this.eventSource)
+    if(this.eventSource){
       this.eventSource.close();
+    }
   }
 
 	render(){
@@ -505,7 +536,7 @@ class GameRoom extends React.Component {
       else if(this.state.roomClosed){
         state["roomClosed"] = true;
       }
-
+      
       return (<Redirect to={{
         pathname: "/lobby",
         state: state
