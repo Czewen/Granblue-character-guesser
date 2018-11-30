@@ -53,27 +53,10 @@ function makeid() {
 }
 
 function deleteOldRooms(){
-  // console.log("Called deleteOldRooms");
-
-  // db.task(t => {
-  //   return t.any("UPDATE rooms SET closed=true where created + interval '1h' < now()")
-  //     .then(result => {
-  //       return t.any("DELETE FROM rooms where closed=true RETURNING *");
-  //     })
-  // })
-  // .then(deletedRooms => {
-  //   for(var room of deletedRooms){
-  //     rooms[room.id] = undefined;
-  //   }
-  // })
-  // .catch(error => {
-  //   console.log("DeleteOldRooms error: ", error);
-  // })
   db.any("DELETE FROM rooms where created + interval '1h' < now() OR closed=true RETURNING *")
   .then(result => {
     for(var i = 0; i<result.length; i++){
       var room = result[i];
-      // console.log("DELETING ROOM WITH ID: ", room.id);
       rooms[room.id] = undefined
     }
   })
@@ -315,7 +298,6 @@ function selectNextQuestion(roomInfo, sendToClients){
       sendToClients();
 
       roomInfo.timerFunc = setTimeout(function(){
-        roomInfo.hasSubmitted = {};
         myEmitter.emit('event', 'sendAnswers', roomInfo)
       }, timePerGuess);
 		})
@@ -552,8 +534,10 @@ router.post('/leave', function(req, res, next){
 						var message = "Room with ID: " + room_id + " not found.";
 						res.status(200).send({"error": true, "message": message});
 					}
-					myEmitter.emit('event', 'disconnect', roomInfo);
-					res.status(200).send('OK');
+          else{
+            myEmitter.emit('event', 'disconnect', roomInfo);
+            res.status(200).send('OK');
+          }
 				})
 				.catch(error => {
 					console.log(error);
