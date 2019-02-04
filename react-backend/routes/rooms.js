@@ -34,6 +34,11 @@ var timePerRound = 2.5 * minutesInMs;
 var clearOldRooms = setInterval(deleteOldRooms, 5 * minutesInMs);
 /***********************************************************************/
 
+/**
+ * Generates a random character id that is not in a given map of character ids
+ * @param {object} A plain object functioning as a set/map of character id
+ * @return {int} A new character id.
+**/
 function getRandomCharacterId(charactersShown){
   var randId = Math.floor(Math.random() * Math.floor(numCharacters)) + 1;
   while(charactersShown[randId]){
@@ -42,6 +47,10 @@ function getRandomCharacterId(charactersShown){
   return randId;
 }
 
+/**
+ * Generates a random 8 character id sting
+ * @return {string} A randomly generated 8 character string
+**/
 function makeid() {
   var text = "";
   var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -52,6 +61,9 @@ function makeid() {
   return text;
 }
 
+/**
+ * Deletes rooms that are older than an hour or rooms that have been closed from the database
+**/
 function deleteOldRooms(){
   db.any("DELETE FROM rooms where created + interval '1h' < now() OR closed=true RETURNING *")
   .then(result => {
@@ -65,6 +77,12 @@ function deleteOldRooms(){
   })
 }
 
+/**
+ * Represents a room
+ * @constructor
+ * @param {string} id - The id of the room
+ * @param {string} owner - The username of the room's owner
+**/
 function Room(id, owner){
 	this.id = id;
 	this.owner = owner;
@@ -82,10 +100,36 @@ function Room(id, owner){
 	this.currentQuestion = {};
 }
 
+/**
+ * Represents a character
+ * @param characterId {int} - The character's id
+ * @param name {string} - The character's name
+ * @param element {string} - The character's element
+ * @param race {string} - The character's race
+ * @param weapon {string} - The character's weapon proficiency
+ * @param style {string} - The character's style
+ * @param story_exclusive {boolean} - Whether the character is story only
+ * @param restricted_words - Comma separated string of words that cannot be used to describe this character
+**/
+function Character(characterId, name, element, race, weapon, style, story_exclusive, restricted_words){
+  this.characterId = characterId;
+  this.name = name;
+  this.element = element;
+  this.race = race;
+  this.weapon = weapon;
+  this.style = style;
+  this.story_exclusive;
+  this.restricted_words = restricted_words;
+}
+/**
+ * Event handler function that implements a finite state machine for handling game state transitions.
+ * Pushes state changes in a room to every player in the room
+ * @param updateType {string} - The type of event/state change to be handled
+ * @param roomInfo {room} - The room object of the room that is receiving the state change
+**/
 function handleEvent(updateType, roomInfo){
 	var clients = roomInfo.clients;
 	var clientNames = Object.keys(clients);
-	// console.log('handling event: ', updateType);
 	var dataObj;
 
 	var sendToClientsCallback = function(dataObj){
@@ -98,7 +142,6 @@ function handleEvent(updateType, roomInfo){
 
 	switch(updateType){
 		case 'playerJoin':
-			// console.log("playerJoin: ", roomInfo.id);
 			dataObj = {'eventType': updateType, 'playerScores': roomInfo.playerScores};
 			break;
 
@@ -128,7 +171,6 @@ function handleEvent(updateType, roomInfo){
 
 		case 'startQuestionRound':
 			roomInfo.currentRound++;
-			// console.log("Room round: ", roomInfo.currentRound);
 			if(roomInfo.currentRound <= roomInfo.maxRounds){
 				roomInfo.gameState = "question";
 				prepareQuestions(roomInfo, sendToClientsCallback);
@@ -191,6 +233,10 @@ function handleEvent(updateType, roomInfo){
 	}
 }
 
+/**
+ * Sets a room's state to closed on both the server and the database
+ * @param roomInfo {room} - The room object of the room that is to be closed
+**/
 function closeRoom(roomInfo){
 	var query = 'update rooms set closed=true WHERE id=$1';
   roomInfo.gameState = 'closed';
@@ -208,17 +254,21 @@ function closeRoom(roomInfo){
 
 }
 
+/**
+ * Generates a random question that has not been encountered before for each player in a room.
+ * Only generates one question per player for the current round.
+ * @param roomInfo {room} - The room object of the room
+ * @param callback {function} - A callback function to be executed when the questions have been generated
+**/
 function prepareQuestions(roomInfo, callback){
 	var questions = [];
 	var users = Object.keys(roomInfo.playerScores);
 	for(user of users){
-		
 		var characterId = getRandomCharacterId(roomInfo.charactersShown);
     roomInfo.charactersShown[characterId] = true;
 		questions.push({"roomid": roomInfo.id, "username": user,"character_id": characterId, "round": roomInfo.currentRound});
 	}
-	// console.log("Questions generated: ", questions);
-	//var values = new Inserts('${roomId}, ${username}, ${character_id}, ${round}', questions);
+
 	var query = pgp.helpers.insert(questions, ['roomid', 'username', 'character_id', 'round'], 'questions') + " RETURNING id";
 	db.result(query)
 		.then(result => {
@@ -238,27 +288,11 @@ function prepareQuestions(roomInfo, callback){
 		})
 }
 
-function createQuestion(roomId, round, username){
-	var query = 'INSERT INTO QUESTIONS(roomId, username, character_id, round)'
-				+ 'VALUES($1, $2, $3) RETURNING id';
-	//for testing purposes, character_id = 1 (will be randomized in the future)
-
-  var roomInfo = rooms[roomId];
-	var characterId = getRandomCharacterId(roomInfo.charactersShown);
-  roomInfo.charactersShown[characterId] = true;
-
-	db.result(query, [roomId, username, characterId, round])
-		.then(result => {
-				if(result.count === 0){
-					return res.status(200).json({'error': true, 'message': 'Error occurred when trying to create question'});
-				}
-		})
-		.catch(function(error){
-				console.log(error);
-				res.status(500).end();
-		})
-}
-
+/**
+ * Retrieves the next question to be answered by players in the room and sends it using a callback.
+ * @param roomInfo {room} - The room object of the room
+ * @param sendToClients {function} - The function that sends the new question data to the players
+**/
 function selectNextQuestion(roomInfo, sendToClients){
 	if(roomInfo.questionIds.length > 0){
 		var nextQuestionId = roomInfo.questionIds.shift();
@@ -314,6 +348,12 @@ router.all('*', cors({
   preflightContinue: true  
 }));
 
+/**
+ * GET endpoint - Returns all rooms that have not started and are not closed
+ *
+ * Response:
+ * An array of room objects
+**/
 router.get('/', function(req, res, next) {
 	db.any('SELECT * FROM rooms WHERE closed=false AND started=false')
     .then(function(data) {
@@ -326,10 +366,21 @@ router.get('/', function(req, res, next) {
     
 });
 
+/**
+ * POST endpoint - Creates and initializes a new room
+ *
+ * Query parameters:
+ * owner {string} - The username of the creator of the new room
+ * capacity {int} - The maximum capacity that the new room should have
+ * maxRounds {int} - The maximum number of rounds that the new room should have
+ *
+ * Response:
+ * room_id {string} - The room id of the newly created room
+ * success {boolean} - Whether the room was created successfully
+**/
 router.post('/create', function(req, res, next){
-	// console.log(req.body);
 	var body = req.body;
-  if(!body.owner){
+  if(!body || !body.owner || !body.capacity || body.capacity < 1 || !body.maxRounds || body.maxRounds < 1){
     return res.status(400).end();
   }
 	var newRoomId = makeid();
@@ -337,28 +388,39 @@ router.post('/create', function(req, res, next){
 				+ 'VALUES($1, 1, $2, FALSE, FALSE, $3, $4)';	
 	db.any(query, [newRoomId, body.capacity, body.owner, body.maxRounds])
 	.then(function(data){
-		// console.log("INSERT SUCCESS: " ,data);
-		// console.log("Creating room with id: ", newRoomId);
 		var newRoom = new Room(newRoomId, body.owner);
 		rooms[newRoom.id] = newRoom;
 		newRoom.playerScores[body.owner] = 0;
 		newRoom.currentCapacity = 1;
     newRoom.maxRounds = body.maxRounds;
     newRoom.maxCapacity = body.capacity;
-		// var roomIds = Object.keys(rooms);
-		// console.log(roomIds);
 		res.status(200).json({'success': true, 'room_id': newRoomId});
 	})
 	.catch(function(error){
-		// console.log("INSERT FAIL:", error);
 		res.status(500).end();
 	})
 });
 
+/**
+ * PUT endpoint - Joins an existing room
+ * Returns an error if 
+ * 1. The room does not exist
+ * 2. The game has already started in the target room
+ * 3. The room is already full
+ * 4. A player with the same username is already in the room
+ *
+ * Query parameters:
+ * username {string} - The username of the player
+ * room_id {string} - The room id of the target room
+ *
+ * Response:
+ * error {boolean} - Whether the player joined the room successfully
+ * roomNotExist {boolean} - Whether a room with the given room id exists
+ * roomFull {boolean} - Whether the room is already full
+ * gameStarted {boolean} - Whether the game in the room has started
+ * duplicateUsername {boolean} - Whether the room has a player with the same username
+**/
 router.put('/join', function(req, res, next){
-	if(req.body == undefined || req.body.length == 0){
-		return res.status(400).send('Bad Request');
-	}
 
 	if(req.query.room_id == undefined || req.query.username == undefined){
 		return res.status(400).send('Bad Request');
@@ -394,13 +456,29 @@ router.put('/join', function(req, res, next){
     })
     .catch(error => {
     	if(error.code == capacity_error_code){
-        console.log("User join room: ", error);
     		return res.status(200).send({"error": true, "roomFull": true});
     	}
     	return res.status(500).send();
     });
 });
 
+/**
+ * GET endpoint - Returns a room
+ * Returns an error if 
+ * 1. The room does not exist
+ * 2. The room is closed
+ * 3. The player is not part of the room
+ *
+ * Query parameters:
+ * username {string} - The username of the player
+ * room_id {string} - The room id of the target room
+ *
+ * Response:
+ * error {boolean} - Whether there was an error
+ * roomNotExist {boolean} - Whether a room with the given room id exists
+ * roomClosed {boolean} - Whether the room is already closed
+ * noPermission {boolean} - Whether the player is part of the room
+**/
 router.get('/room', function(req, res, next){
 	if(req.query.room_id == undefined || req.query.username == undefined){
 		res.status(400).end();
@@ -448,6 +526,18 @@ router.get('/room', function(req, res, next){
 	}
 })
 
+/**
+ * POST endpoint - Starts the game of a room
+ * Returns an error if 
+ * 1. The room does not exist
+ *
+ * Query parameters:
+ * room_id {string} - The room id of the target room
+ *
+ * Response:
+ * error {boolean} - Whether there was an error
+ * roomNotExist {boolean} - Whether a room with the given room id exists
+**/
 router.post('/startGame', function(req, res, next){
 	if(req.query.room_id == undefined || req.query.username == undefined){
 		res.status(400).end();
@@ -471,6 +561,19 @@ router.post('/startGame', function(req, res, next){
 	}
 })
 
+/**
+ * GET endpoint - Returns the current game state of a room
+ * Returns an error if 
+ * 1. The room does not exist
+ *
+ * Query parameters:
+ * room_id {string} - The room id of the target room
+ *
+ * Response:
+ * gameState {string} - The current game state of the room
+ * error {boolean} - Whether there was an error
+ * message {string} - Error message indicating that the room does not exist
+**/
 router.get('/getGameState', function(req, res, next){
 	if(req.query.room_id === undefined){
 		res.status(400).end();
@@ -493,6 +596,13 @@ router.get('/getGameState', function(req, res, next){
 
 })
 
+/**
+ * GET endpoint - Subscribes to the room's event stream (Server sent events)
+ *
+ * Query parameters:
+ * room_id {string} - The room id of the target room
+ *
+**/
 router.get('/eventstream', function(req, res, next){
 
 	if(req.query.room_id === undefined || req.query.username === undefined){
@@ -504,15 +614,28 @@ router.get('/eventstream', function(req, res, next){
 	var username = req.query.username;
 	if(roomInfo != undefined){
 		res.writeHead(200, {
-	      'Connection': 'keep-alive',
-	      'Content-Type': 'text/event-stream',
-	      'Cache-Control': 'no-cache'
-	    });
+      'Connection': 'keep-alive',
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache'
+	   });
 
-	    roomInfo.clients[username] = res;
+	   roomInfo.clients[username] = res;
 	}
 })
 
+/**
+ * GET endpoint - Leaves a room
+ * Returns an error if 
+ * 1. The room does not exist
+ *
+ * Query parameters:
+ * room_id {string} - The room id of the target room
+ * username {string} - The username of the leaving player
+ *
+ * Response:
+ * error {boolean} - Whether there was an error
+ * message {string} - Error message indicating that the room does not exist
+**/
 router.post('/leave', function(req, res, next){
 
 	if(req.query.room_id === undefined || req.query.username === undefined){
@@ -546,12 +669,6 @@ router.post('/leave', function(req, res, next){
 
 			db.result('DELETE FROM questions WHERE roomid=$1', [room_id], r => r.rowCount)
 				.then(count =>{
-					// if(count === 0){
-					// 	console.log("No questions found for questions with roomid: ", room_id);
-					// }
-					// else{
-					// 	console.log("Number of questions deleted: ", count);
-					// }
 				})
 				.catch(function(error){
 					console.log("Failed to delete questions");
@@ -602,6 +719,22 @@ router.post('/leave', function(req, res, next){
   }
 })
 
+/**
+ * GET endpoint - Returns the current question of the round that players need to answer
+ * Returns an error if 
+ * 1. The room does not exist
+ * 
+ * Query parameters:
+ * room_id {string} - The room id of the target room
+ *
+ * Response:
+ * A JSON object with a question object and character object
+ * Question {
+ *  id {string} - The question's id
+ *  owner {string} - The username of the player that owns this question
+ *  description {string} - The descriptions entered by the question owner 
+ * }
+**/
 router.get('/roomQuestion', function(req, res, next){
 	if(req.query.room_id === undefined || req.query.username === undefined){
 		res.status(400).end();
@@ -609,7 +742,7 @@ router.get('/roomQuestion', function(req, res, next){
 
 	var roomInfo = rooms[req.query.room_id];
 	if(roomInfo === undefined){
-		var errMsg = 'Could not find question with ID: ' + questionId
+		var errMsg = 'Could not find room with ID: ' + req.query.room_id;
 		return res.status(200).json({
       'error': true, 
       'message': errMsg
@@ -641,9 +774,28 @@ router.get('/roomQuestion', function(req, res, next){
 })
 
 
-
+/**
+ * GET endpoint - Returns the current question that the player needs to describe
+ * Returns an error if 
+ * 1. The room does not exist
+ * 2. The player is not up to date with the room (Disconnections for example)
+ * 
+ * Query parameters:
+ * room_id {string} - The room id of the target room
+ * username {string} - The player's username
+ * round {int} - The player's current round from the player's client
+ *
+ * Response:
+ * question {Question} - The question object of the current question that the player needs to describe
+ * character {Character} - The character object of the character in the question
+ * error {boolean} - Whether there was an error
+ * roomExists {boolean} - Whether the room exists
+ * expired {boolean} - Whether the player is out of date/desynced
+ * currentRound {int} - The current round of the room
+ * hasSubmittedDescription {boolea} - Whether the player has described this question
+ * playersReady {string arrya} - An array of players who have already described their questions this round 
+**/
 router.get('/getMyQuestion', function(req, res, next){
-  //console.log("getMyQuestion query params: ", req.query);
 	if(req.query.username === undefined || req.query.room_id === undefined
 			|| req.query.round === undefined){
 		res.status(400).end();
@@ -700,6 +852,25 @@ router.get('/getMyQuestion', function(req, res, next){
 		})
 })
 
+/**
+ * POST endpoint - Submits a description to the player's current question
+ * Returns an error if 
+ * 1. The room does not exist
+ * 2. The player has already described their question
+ * 3. The question does not exist
+ * 
+ * Query parameters:
+ * room_id {string} - The room id of the target room
+ * username {string} - The player's username
+ * questionId {int} - The id of the question
+ * description {string} - The description 
+ *
+ * Response:
+ * error {boolean} - Whether there was an error
+ * roomNotExists {boolean} - Whether the room exists
+ * questionExists {boolean} - Whether the question exists
+ * repost {boolean} - Whether the player has already described this question
+**/
 router.post('/submitDescription', function(req, res, next){
 	if(req.body.questionId === undefined || req.body.room_id === undefined
 			|| req.body.description === undefined || req.body.username === undefined){
@@ -712,7 +883,7 @@ router.post('/submitDescription', function(req, res, next){
 	var roomInfo = rooms[req.body.room_id];
 
 	if(roomInfo === undefined){
-		return res.status(200).send({'error': true, 'questionExists': false});
+		return res.status(200).send({'error': true, 'roomNotExist': true});
 	}
 
 	if(roomInfo.hasSubmitted[username] != undefined){
@@ -746,6 +917,26 @@ router.post('/submitDescription', function(req, res, next){
 	})
 })
 
+/**
+ * POST endpoint - Submits a answer to the room's current question
+ * Returns an error if 
+ * 1. The room does not exist
+ * 2. The player has already submitted their answer
+ * 3. The question does not exist
+ * 4. The room's state is no longer in the answer phase
+ * 
+ * Query parameters:
+ * room_id {string} - The room id of the target room
+ * username {string} - The player's username
+ * questionId {int} - The id of the question
+ * answer {string} - The player's answer 
+ *
+ * Response:
+ * error {boolean} - Whether there was an error
+ * exists {boolean} - Whether the room exists
+ * expired {boolean} - Whether the answer was submitted after the room is no longer in the answer phase
+ * repost {boolean} - Whether the player has already answered this question
+**/
 router.post('/submitAnswer', function(req, res, next){
 	if(req.body.questionId === undefined || req.body.room_id === undefined
 			|| req.body.username === undefined || req.body.answer === undefined){
